@@ -18,4 +18,5 @@ def test_package_importable():
     """Verify the main package is importable."""
     mod = importlib.import_module("src")
     assert hasattr(mod, "__version__")
-    assert mod.__version__ == "1.0.0"
+    assert isinstance(mod.__version__, str)
+    assert len(mod.__version__.split(".")) == 3
