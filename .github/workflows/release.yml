@@ -4,13 +4,6 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      rebuild_data:
-        description: "Rebuild dataset from source"
-        required: false
-        default: true
-        type: boolean
 
 permissions:
   contents: write
@@ -29,20 +22,17 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Cache raw data
-        if: inputs.rebuild_data != false
         uses: actions/cache@v4
         with:
           path: data/raw
           key: raw-data-${{ hashFiles('scripts/download_data.sh') }}
 
       - name: Download data
-        if: inputs.rebuild_data != false
         run: |
           mkdir -p data/raw/wordnet data/raw/wiktionary data/raw/supplemental
           bash scripts/download_data.sh
 
       - name: Run pipeline
-        if: inputs.rebuild_data != false
         run: python -m src.processing.pipeline
 
       - name: Generate checksums
