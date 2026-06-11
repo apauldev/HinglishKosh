@@ -18,6 +18,7 @@ HinglishKosh fills that gap: **200,000+ entries** sourced from WordNet and Wikti
 ## Features
 
 - **209,462 entries** from WordNet (153K) and Wiktionary (56K)
+- **Two dataset versions** — full (all entries) and safe (toxic entries filtered out)
 - **Informal Hinglish romanization** — `chai` not `cāy`, `aag` not `āg`, `hawa` not `havā`
 - **REST API** with phonetic search and safe-mode filtering
 - **AOSP keyboard export** — ready for OpenBoard, HeliBoard, FUTO Keyboard
@@ -130,6 +131,19 @@ Each entry in the dictionary follows this schema:
 | `confidence_score` | 1.0 (WordNet) or 0.85 (Wiktionary) |
 | `toxicity_flags` | List of detected content flags |
 | `severity_score` | 0.0 (safe) to 1.0 (toxic) |
+
+### Dataset Versions
+
+The pipeline generates two dataset versions:
+
+| File | Description |
+|---|---|
+| `hinglish_dictionary_v1.json` | Full dataset — all 209,462 entries |
+| `hinglish_dictionary_v1_safe.json` | Safe dataset — toxic entries filtered (`severity_score < 0.5`) |
+
+Both versions include `.min.json` compact variants for production use.
+
+Use the safe version for keyboard apps and public-facing tools. Use the full version for NLP research where completeness matters.
 
 ## Architecture
 

@@ -127,12 +127,16 @@ def run_pipeline(
         pos = entry.get("part_of_speech", "unknown")
         pos_counts[pos] = pos_counts.get(pos, 0) + 1
 
-    # Build output
+    # Build safe dataset (filter toxic entries)
+    safe_entries = [e for e in merged if e.get("severity_score", 0) < 0.5]
+
+    # Build full dataset
     dataset = {
         "meta": {
             "name": "HinglishKosh (हिंग्लिशकोश)",
             "version": "1.0.0",
             "total_entries": len(merged),
+            "safe_entries": len(safe_entries),
             "sources": list(sources.keys()),
             "source_counts": sources,
             "pos_distribution": pos_counts,
@@ -145,28 +149,56 @@ def run_pipeline(
         "dictionary": merged,
     }
 
-    # Write JSON
+    # Build safe dataset
+    safe_dataset = {
+        "meta": {
+            "name": "HinglishKosh Safe (हिंग्लिशकोश सुरक्षित)",
+            "version": "1.0.0",
+            "total_entries": len(safe_entries),
+            "description": (
+                "Safe version of HinglishKosh — toxic entries filtered out (severity_score < 0.5)."
+            ),
+            **{k: v for k, v in dataset["meta"].items() if k not in ("name", "total_entries")},
+        },
+        "dictionary": safe_entries,
+    }
+
+    # Write full JSON
     output_file = output_dir / "hinglish_dictionary_v1.json"
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(dataset, f, ensure_ascii=False, indent=2)
     logger.info("Wrote %d entries to %s", len(merged), output_file)
 
-    # Write compact JSON (for production)
+    # Write full compact JSON
     compact_file = output_dir / "hinglish_dictionary_v1.min.json"
     with open(compact_file, "w", encoding="utf-8") as f:
         json.dump(dataset, f, ensure_ascii=False, separators=(",", ":"))
     logger.info("Wrote compact JSON to %s", compact_file)
+
+    # Write safe JSON
+    safe_file = output_dir / "hinglish_dictionary_v1_safe.json"
+    with open(safe_file, "w", encoding="utf-8") as f:
+        json.dump(safe_dataset, f, ensure_ascii=False, indent=2)
+    logger.info("Wrote %d safe entries to %s", len(safe_entries), safe_file)
+
+    # Write safe compact JSON
+    safe_compact_file = output_dir / "hinglish_dictionary_v1_safe.min.json"
+    with open(safe_compact_file, "w", encoding="utf-8") as f:
+        json.dump(safe_dataset, f, ensure_ascii=False, separators=(",", ":"))
+    logger.info("Wrote safe compact JSON to %s", safe_compact_file)
 
     # Print summary
     print(f"\n{'=' * 60}")
     print("  HinglishKosh (हिंग्लिशकोश) — Pipeline Complete")
     print(f"{'=' * 60}")
     print(f"  Total entries:  {len(merged):,}")
+    print(f"  Safe entries:   {len(safe_entries):,} (severity < 0.5)")
     print(f"  WordNet:        {sources.get('WordNet', 0):,}")
     print(f"  Wiktionary:     {sources.get('Wiktionary', 0):,}")
     supp_count = sum(v for k, v in sources.items() if k.startswith("supplemental"))
     print(f"  Supplemental:   {supp_count:,}")
     print(f"  Output:         {output_file}")
+    print(f"  Safe output:    {safe_file}")
     print(f"{'=' * 60}\n")
 
     return dataset["meta"]

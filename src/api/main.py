@@ -18,34 +18,45 @@ logger = logging.getLogger(__name__)
 
 # Lazy-loaded dictionary data
 _dictionary: list[dict[str, Any]] = []
+_safe_dictionary: list[dict[str, Any]] = []
 _metadata: dict[str, Any] = {}
 
 
 def _load_dictionary(data_dir: Path = Path("data/output")) -> None:
-    """Load dictionary data from JSON file."""
-    global _dictionary, _metadata
+    """Load dictionary data from JSON files."""
+    global _dictionary, _safe_dictionary, _metadata
 
+    # Load full dataset
     json_file = data_dir / "hinglish_dictionary_v1.json"
-    if not json_file.exists():
-        logger.warning("Dictionary file not found: %s", json_file)
-        return
+    if json_file.exists():
+        with open(json_file, encoding="utf-8") as f:
+            data = json.load(f)
+        _metadata = data.get("meta", {})
+        _dictionary = data.get("dictionary", [])
+        logger.info("Loaded %d entries from %s", len(_dictionary), json_file)
 
-    with open(json_file, encoding="utf-8") as f:
-        data = json.load(f)
+    # Load safe dataset
+    safe_file = data_dir / "hinglish_dictionary_v1_safe.json"
+    if safe_file.exists():
+        with open(safe_file, encoding="utf-8") as f:
+            safe_data = json.load(f)
+        _safe_dictionary = safe_data.get("dictionary", [])
+        logger.info("Loaded %d safe entries from %s", len(_safe_dictionary), safe_file)
 
-    _metadata = data.get("meta", {})
-    _dictionary = data.get("dictionary", [])
-    logger.info("Loaded %d entries from %s", len(_dictionary), json_file)
 
-
-def _fuzzy_search(query: str, limit: int = 20) -> list[dict[str, Any]]:
+def _fuzzy_search(
+    query: str, limit: int = 20, dictionary: list[dict[str, Any]] | None = None
+) -> list[dict[str, Any]]:
     """Simple fuzzy search across headwords and definitions."""
+    if dictionary is None:
+        dictionary = _dictionary
+
     query_lower = query.lower().strip()
     if not query_lower:
         return []
 
     results = []
-    for entry in _dictionary:
+    for entry in dictionary:
         score = 0
 
         # Exact headword match (highest priority)
@@ -113,13 +124,11 @@ def create_app(data_dir: Path = Path("data/output")) -> Any:
     @app.get("/lookup")
     async def lookup(
         word: str = Query(..., description="Word to look up (Hindi or Roman)"),
-        safe: bool = Query(False, description="If true, filter out toxic entries"),
+        safe: bool = Query(False, description="If true, use pre-filtered safe dataset"),
         limit: int = Query(10, ge=1, le=100),
     ):
-        results = _fuzzy_search(word, limit=limit)
-
-        if safe:
-            results = [r for r in results if r.get("severity_score", 0) < 0.5]
+        data = _safe_dictionary if safe else _dictionary
+        results = _fuzzy_search(word, limit=limit, dictionary=data)
 
         return {
             "query": word,
@@ -130,13 +139,11 @@ def create_app(data_dir: Path = Path("data/output")) -> Any:
     @app.get("/search")
     async def search(
         q: str = Query(..., description="Search query"),
-        safe: bool = Query(False),
+        safe: bool = Query(False, description="If true, use pre-filtered safe dataset"),
         limit: int = Query(20, ge=1, le=100),
     ):
-        results = _fuzzy_search(q, limit=limit)
-
-        if safe:
-            results = [r for r in results if r.get("severity_score", 0) < 0.5]
+        data = _safe_dictionary if safe else _dictionary
+        results = _fuzzy_search(q, limit=limit, dictionary=data)
 
         return {
             "query": q,

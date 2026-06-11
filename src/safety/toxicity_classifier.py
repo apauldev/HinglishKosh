@@ -31,7 +31,7 @@ class ToxicityClassifier:
         """
         self.model_name = model_name
         self.threshold = threshold
-        self._pipeline = None
+        self._pipeline: Any = None
         self._available = False
 
         self._try_load_model()
@@ -39,7 +39,7 @@ class ToxicityClassifier:
     def _try_load_model(self) -> None:
         """Attempt to load the Hugging Face pipeline."""
         try:
-            from transformers import pipeline as hf_pipeline
+            from transformers import pipeline as hf_pipeline  # type: ignore[import-untyped]
 
             logger.info("Loading toxicity model: %s", self.model_name)
             self._pipeline = hf_pipeline(

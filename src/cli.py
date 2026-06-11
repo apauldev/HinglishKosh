@@ -14,9 +14,10 @@ import sys
 from pathlib import Path
 
 
-def load_dictionary(data_dir: Path = Path("data/output")) -> dict:
+def load_dictionary(data_dir: Path = Path("data/output"), safe: bool = False) -> dict:
     """Load dictionary from JSON file."""
-    json_file = data_dir / "hinglish_dictionary_v1.json"
+    filename = "hinglish_dictionary_v1_safe.json" if safe else "hinglish_dictionary_v1.json"
+    json_file = data_dir / filename
     if not json_file.exists():
         print(f"Error: Dictionary not found at {json_file}", file=sys.stderr)
         print("Run the pipeline first: python -m src.processing.pipeline", file=sys.stderr)
@@ -28,7 +29,7 @@ def load_dictionary(data_dir: Path = Path("data/output")) -> dict:
 
 def cmd_lookup(args):
     """Look up a word in the dictionary."""
-    data = load_dictionary(Path(args.data_dir))
+    data = load_dictionary(Path(args.data_dir), safe=args.safe)
     dictionary = data.get("dictionary", [])
 
     query = args.word.lower().strip()
@@ -49,9 +50,6 @@ def cmd_lookup(args):
                 or query in entry.get("word_hinglish_roman", "").lower()
             ):
                 results.append(entry)
-
-    if args.safe:
-        results = [r for r in results if r.get("severity_score", 0) < 0.5]
 
     if not results:
         print(f"No results found for: {args.word}")
@@ -76,7 +74,7 @@ def cmd_lookup(args):
 
 def cmd_search(args):
     """Search the dictionary."""
-    data = load_dictionary(Path(args.data_dir))
+    data = load_dictionary(Path(args.data_dir), safe=args.safe)
     dictionary = data.get("dictionary", [])
 
     query = args.query.lower().strip()
@@ -95,9 +93,6 @@ def cmd_search(args):
             results.append((score, entry))
 
     results.sort(key=lambda x: x[0], reverse=True)
-
-    if args.safe:
-        results = [(s, e) for s, e in results if e.get("severity_score", 0) < 0.5]
 
     results = results[: args.limit]
 
