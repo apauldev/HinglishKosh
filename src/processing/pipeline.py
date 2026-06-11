@@ -19,6 +19,9 @@ from src.ingestion.wiktionary_loader import load_wiktionary
 from src.ingestion.wordnet_loader import load_english_hindi_linkage, load_wordnet
 from src.processing.merge import assign_ids, merge_dictionaries
 from src.processing.transliterate import _COMMON_WORDS, iso_to_hinglish, transliterate
+from src.safety.profanity_list import ProfanityMatcher
+from src.safety.severity_scorer import flag_entries
+from src.safety.toxicity_classifier import ToxicityClassifier
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,6 +65,7 @@ def run_pipeline(
     data_dir: Path = Path("data/raw"),
     output_dir: Path = Path("data/output"),
     include_supplemental: bool = True,
+    skip_safety: bool = False,
 ) -> dict[str, Any]:
     """Run the full dictionary processing pipeline.
 
@@ -115,7 +119,23 @@ def run_pipeline(
     # Assign unified IDs
     merged = assign_ids(merged)
 
-    # === Stage 5: Output ===
+    # === Stage 5: Safety Filter ===
+    if not skip_safety:
+        logger.info("=== Running Safety Filter ===")
+        profanity_matcher = ProfanityMatcher()
+        toxicity_classifier = ToxicityClassifier()
+        logger.info(
+            "Safety filter ready (profanity: %s, ml: %s)",
+            "loaded" if profanity_matcher.wordlist else "empty",
+            "available" if toxicity_classifier.is_available else "unavailable",
+        )
+        merged = flag_entries(merged, profanity_matcher, toxicity_classifier)
+        flagged_count = sum(1 for e in merged if e.get("severity_score", 0) >= 0.5)
+        logger.info("Safety filter complete: %d entries flagged", flagged_count)
+    else:
+        logger.info("=== Safety Filter Skipped ===")
+
+    # === Stage 6: Output ===
     logger.info("=== Generating Output ===")
 
     # Compute stats
@@ -234,12 +254,14 @@ def main():
     parser.add_argument("--data-dir", type=Path, default=Path("data/raw"))
     parser.add_argument("--output-dir", type=Path, default=Path("data/output"))
     parser.add_argument("--no-supplemental", action="store_true")
+    parser.add_argument("--skip-safety", action="store_true", help="Skip safety filter")
     args = parser.parse_args()
 
     run_pipeline(
         data_dir=args.data_dir,
         output_dir=args.output_dir,
         include_supplemental=not args.no_supplemental,
+        skip_safety=args.skip_safety,
     )
 
 

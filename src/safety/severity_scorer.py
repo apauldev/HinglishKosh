@@ -80,30 +80,61 @@ def flag_entries(
     """Process dictionary entries through the safety filter.
 
     Adds toxicity_flags and severity_score to each entry.
+    Uses batch ML inference for performance.
     """
-    flagged = []
+    import logging
 
+    logger = logging.getLogger(__name__)
+    total = len(entries)
+
+    # Phase 1: Dictionary check (fast)
+    logger.info("Phase 1/2: Dictionary check on %d entries...", total)
+    dict_matches_list = []
     for entry in entries:
         word = entry.get("word_hindi", "")
         definition = entry.get("definition", "")
         example = entry.get("example_sentence", "")
-
-        # Combine text for checking
         check_text = f"{word} {definition} {example}".strip()
-
-        # Dictionary check
         dict_matches = profanity_matcher.check_text(check_text)
+        dict_matches_list.append(dict_matches)
 
-        # ML check
-        ml_result = toxicity_classifier.classify(check_text)
+    # Phase 2: ML check (batched if available)
+    logger.info("Phase 2/2: ML toxicity check on %d entries...", total)
+    if toxicity_classifier.is_available and hasattr(toxicity_classifier, "classify_batch"):
+        # Batch ML inference
+        texts = []
+        for entry in entries:
+            word = entry.get("word_hindi", "")
+            definition = entry.get("definition", "")
+            example = entry.get("example_sentence", "")
+            texts.append(f"{word} {definition} {example}".strip())
 
-        # Compute severity
+        logger.info("Running batch ML inference (batch_size=256)...")
+        ml_results = toxicity_classifier.classify_batch(texts)
+        logger.info("Batch ML inference complete")
+    else:
+        # Sequential fallback
+        logger.info("Running sequential ML inference...")
+        ml_results = []
+        for i, entry in enumerate(entries):
+            if (i + 1) % 10000 == 0:
+                logger.info("  ML progress: %d/%d", i + 1, total)
+            word = entry.get("word_hindi", "")
+            definition = entry.get("definition", "")
+            example = entry.get("example_sentence", "")
+            check_text = f"{word} {definition} {example}".strip()
+            ml_results.append(toxicity_classifier.classify(check_text))
+        logger.info("Sequential ML inference complete")
+
+    # Phase 3: Combine results
+    flagged = []
+    for entry, dict_matches, ml_result in zip(entries, dict_matches_list, ml_results):
         severity = compute_severity(dict_matches, ml_result)
-
-        # Update entry
         entry["toxicity_flags"] = severity["toxicity_flags"]
         entry["severity_score"] = severity["severity_score"]
-
         flagged.append(entry)
+
+    flagged_count = sum(1 for e in flagged if e.get("severity_score", 0) >= 0.5)
+    logger.info("Safety filter complete: %d/%d entries flagged", flagged_count, total)
 
     return flagged
