@@ -19,7 +19,7 @@ from src.ingestion.supplemental_loader import load_supplemental
 from src.ingestion.wiktionary_loader import load_wiktionary
 from src.ingestion.wordnet_loader import load_english_hindi_linkage, load_wordnet
 from src.processing.merge import assign_ids, merge_dictionaries
-from src.processing.transliterate import iso_to_hinglish, transliterate
+from src.processing.transliterate import iso_to_hinglish, transliterate, _COMMON_WORDS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,21 +28,34 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _has_devanagari(text: str) -> bool:
+    """Check if text contains Devanagari characters."""
+    return any("\u0900" <= c <= "\u097F" for c in text)
+
+
 def _ensure_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Convert all romanized forms to informal Hinglish.
 
-    - Wiktionary entries have ISO 15919 romanization (cāy, āg, havā)
-    - We convert to informal Hinglish (chai, aag, hawa)
-    - WordNet entries get rule-based transliteration
+    - First check _COMMON_WORDS for the Devanagari word
+    - Then convert ISO 15919 to informal Hinglish
+    - Or transliterate from Devanagari
     """
     for entry in entries:
+        hindi = entry.get("word_hindi", "")
         roman = entry.get("word_hinglish_roman", "")
-        if roman:
-            # Convert ISO/academic to informal Hinglish
+
+        # First, check if we have a known romanization for this Devanagari word
+        if hindi and hindi in _COMMON_WORDS:
+            entry["word_hinglish_roman"] = _COMMON_WORDS[hindi]
+        elif roman and not _has_devanagari(roman):
+            # Already romanized (likely ISO 15919 from Wiktionary) → convert to Hinglish
             entry["word_hinglish_roman"] = iso_to_hinglish(roman)
-        else:
-            # No roman — generate from Devanagari
-            entry["word_hinglish_roman"] = transliterate(entry.get("word_hindi", ""))
+        elif hindi:
+            # Devanagari or missing roman → transliterate from Hindi
+            entry["word_hinglish_roman"] = transliterate(hindi)
+        elif roman:
+            # Has Devanagari in roman field → transliterate
+            entry["word_hinglish_roman"] = transliterate(roman)
     return entries
 
 
