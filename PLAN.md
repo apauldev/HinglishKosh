@@ -119,19 +119,19 @@
 - [x] Finalize `pyproject.toml` with entry points
 - [x] Add CLI tool: `hinglish-dict lookup <word>`
 - [x] Write tests in `tests/` (701 tests passing)
-- [ ] Create GitHub Actions CI pipeline
+- [x] Create GitHub Actions CI pipeline
 - [ ] Prepare Hugging Face Dataset card
-- [ ] Tag release: `v1.0.0`
+- [x] Tag release: `v1.0.0` → `v1.0.1`
 - [ ] Upload to Hugging Face Datasets
 
 ---
 
 ## Phase 5: Distribution ⏳
 
-### Task 5.1: GitHub Release
-- [ ] Create release script (`scripts/release.sh`)
-- [ ] Tag version and create GitHub release
-- [ ] Attach dataset files (JSON, CSV, .dict, .db)
+### Task 5.1: GitHub Release ✅
+- [x] Create release script (`scripts/release.sh`)
+- [x] Tag version and create GitHub release (automated via `.github/workflows/release.yml`)
+- [x] Attach dataset files (JSON)
 - [ ] Document changelog
 
 ### Task 5.2: Hugging Face Upload
