@@ -59,7 +59,7 @@ class TestToxicityClassifier:
 
     def test_classify_clean_text(self):
         clf = ToxicityClassifier()
-        result = clf.classify("The weather is nice today")
+        result = clf.classify("मौसम आज अच्छा है")
         assert result["toxic"] is False
 
     def test_heuristic_fallback(self):
