@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 def _has_devanagari(text: str) -> bool:
     """Check if text contains Devanagari characters."""
-    return any("\u0900" <= c <= "\u097F" for c in text)
+    return any("\u0900" <= c <= "\u097f" for c in text)
 
 
 def _ensure_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -139,8 +139,7 @@ def run_pipeline(
             "license": "GPL-3.0",
             "creation_date": date.today().isoformat(),
             "description": (
-                "A comprehensive Hinglish-English dictionary "
-                "dataset for keyboards and apps."
+                "A comprehensive Hinglish-English dictionary dataset for keyboards and apps."
             ),
         },
         "dictionary": merged,
@@ -159,16 +158,16 @@ def run_pipeline(
     logger.info("Wrote compact JSON to %s", compact_file)
 
     # Print summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("  HinglishKosh (हिंग्लिशकोश) — Pipeline Complete")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Total entries:  {len(merged):,}")
     print(f"  WordNet:        {sources.get('WordNet', 0):,}")
     print(f"  Wiktionary:     {sources.get('Wiktionary', 0):,}")
-    supp_count = sum(v for k, v in sources.items() if k.startswith('supplemental'))
+    supp_count = sum(v for k, v in sources.items() if k.startswith("supplemental"))
     print(f"  Supplemental:   {supp_count:,}")
     print(f"  Output:         {output_file}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     return dataset["meta"]
 

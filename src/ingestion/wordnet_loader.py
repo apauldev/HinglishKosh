@@ -54,8 +54,7 @@ def parse_synset_file(filepath: Path) -> list[dict[str, Any]]:
             parts = line.split("\t")
             if len(parts) < 4:
                 logger.warning(
-                    "Skipping malformed line %d in %s: %s",
-                    lineno, filepath.name, line[:80]
+                    "Skipping malformed line %d in %s: %s", lineno, filepath.name, line[:80]
                 )
                 continue
 
@@ -73,13 +72,15 @@ def parse_synset_file(filepath: Path) -> list[dict[str, Any]]:
             words = [w.strip() for w in words_str.split(",") if w.strip()]
             gloss, examples = _parse_gloss_examples(gloss_examples_str)
 
-            entries.append({
-                "synset_id": synset_id,
-                "words": words,
-                "gloss": gloss,
-                "examples": examples,
-                "pos": pos.strip(),
-            })
+            entries.append(
+                {
+                    "synset_id": synset_id,
+                    "words": words,
+                    "gloss": gloss,
+                    "examples": examples,
+                    "pos": pos.strip(),
+                }
+            )
 
     return entries
 
@@ -124,21 +125,23 @@ def load_wordnet(data_dir: Path) -> list[dict[str, Any]]:
         head_word = entry["words"][0] if entry["words"] else ""
         for word in entry["words"]:
             entry_id = f"WN-{entry['synset_id']}"
-            normalized.append({
-                "id": entry_id,
-                "word_hindi": word,
-                "word_hinglish_roman": _make_roman(word),
-                "definition": entry["gloss"],
-                "part_of_speech": entry["pos"],
-                "example_sentence": entry["examples"][0] if entry["examples"] else "",
-                "all_examples": entry["examples"],
-                "synsets": [f"iwn-{entry['synset_id']}"],
-                "head_word": head_word,
-                "source": "WordNet",
-                "confidence_score": 1.0,
-                "toxicity_flags": [],
-                "severity_score": 0.0,
-            })
+            normalized.append(
+                {
+                    "id": entry_id,
+                    "word_hindi": word,
+                    "word_hinglish_roman": _make_roman(word),
+                    "definition": entry["gloss"],
+                    "part_of_speech": entry["pos"],
+                    "example_sentence": entry["examples"][0] if entry["examples"] else "",
+                    "all_examples": entry["examples"],
+                    "synsets": [f"iwn-{entry['synset_id']}"],
+                    "head_word": head_word,
+                    "source": "WordNet",
+                    "confidence_score": 1.0,
+                    "toxicity_flags": [],
+                    "severity_score": 0.0,
+                }
+            )
 
     return normalized
 

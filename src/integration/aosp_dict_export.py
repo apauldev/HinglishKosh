@@ -46,14 +46,16 @@ def export_aosp_dict(
 
             # AOSP UserDictionary columns
             # word, freq, locale, shortcut, bigram, pos
-            writer.writerow([
-                word,
-                int(entry.get("confidence_score", 0.5) * 1000),  # frequency score
-                locale,
-                "",  # shortcut (optional)
-                "",  # bigram (optional)
-                entry.get("part_of_speech", ""),
-            ])
+            writer.writerow(
+                [
+                    word,
+                    int(entry.get("confidence_score", 0.5) * 1000),  # frequency score
+                    locale,
+                    "",  # shortcut (optional)
+                    "",  # bigram (optional)
+                    entry.get("part_of_speech", ""),
+                ]
+            )
             count += 1
 
     logger.info("Exported %d entries to %s", count, output_path)

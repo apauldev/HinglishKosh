@@ -52,23 +52,26 @@ class TestDictionaryStructure:
 class TestHindiToHinglishLookup:
     """Verify common Hindi words resolve to correct English definitions."""
 
-    @pytest.mark.parametrize("hindi,expected_english", [
-        ("पानी", "water"),
-        ("घर", "house"),
-        ("खाना", "food"),
-        ("नमस्ते", "greeting"),
-        ("किताब", "book"),
-        ("दूध", "milk"),
-        ("चाय", "tea"),
-        ("मछली", "fish"),
-        ("सोना", "gold"),
-        ("देश", "country"),
-        ("आग", "fire"),
-        ("हवा", "air"),
-        ("विश्व", "universe"),
-        ("केला", "banana"),
-        ("सेब", "apple"),
-    ])
+    @pytest.mark.parametrize(
+        "hindi,expected_english",
+        [
+            ("पानी", "water"),
+            ("घर", "house"),
+            ("खाना", "food"),
+            ("नमस्ते", "greeting"),
+            ("किताब", "book"),
+            ("दूध", "milk"),
+            ("चाय", "tea"),
+            ("मछली", "fish"),
+            ("सोना", "gold"),
+            ("देश", "country"),
+            ("आग", "fire"),
+            ("हवा", "air"),
+            ("विश्व", "universe"),
+            ("केला", "banana"),
+            ("सेब", "apple"),
+        ],
+    )
     def test_hindi_to_english(self, lookup, hindi, expected_english):
         assert hindi in lookup, f"'{hindi}' not found in dictionary"
         entry = lookup[hindi]
@@ -77,18 +80,21 @@ class TestHindiToHinglishLookup:
             f"'{hindi}' definition '{entry['definition']}' does not contain '{expected_english}'"
         )
 
-    @pytest.mark.parametrize("hindi,expected_roman", [
-        ("पानी", "paani"),
-        ("घर", "ghar"),
-        ("नमस्ते", "namaste"),
-        ("किताब", "kitab"),
-        ("दूध", "doodh"),
-        ("चाय", "chai"),
-        ("मछली", "machli"),
-        ("सोना", "sona"),
-        ("आग", "aag"),
-        ("हवा", "hawa"),
-    ])
+    @pytest.mark.parametrize(
+        "hindi,expected_roman",
+        [
+            ("पानी", "paani"),
+            ("घर", "ghar"),
+            ("नमस्ते", "namaste"),
+            ("किताब", "kitab"),
+            ("दूध", "doodh"),
+            ("चाय", "chai"),
+            ("मछली", "machli"),
+            ("सोना", "sona"),
+            ("आग", "aag"),
+            ("हवा", "hawa"),
+        ],
+    )
     def test_hindi_to_roman(self, lookup, hindi, expected_roman):
         """Test romanized forms (informal Hinglish spelling, no diacritics)."""
         assert hindi in lookup, f"'{hindi}' not found in dictionary"

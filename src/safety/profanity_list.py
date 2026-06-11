@@ -41,11 +41,26 @@ class ProfanityMatcher:
     def _build_char_map(self) -> dict[str, str]:
         """Build leet-speak / character substitution map."""
         return {
-            "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
-            "7": "t", "8": "b", "9": "g", "@": "a", "$": "s",
-            "!": "i", "+": "t", "ph": "f", "kk": "k",
+            "0": "o",
+            "1": "i",
+            "3": "e",
+            "4": "a",
+            "5": "s",
+            "7": "t",
+            "8": "b",
+            "9": "g",
+            "@": "a",
+            "$": "s",
+            "!": "i",
+            "+": "t",
+            "ph": "f",
+            "kk": "k",
             # Devanagari-Roman common substitutions
-            "aa": "a", "ee": "e", "oo": "o", "ii": "i", "uu": "u",
+            "aa": "a",
+            "ee": "e",
+            "oo": "o",
+            "ii": "i",
+            "uu": "u",
         }
 
     def load_wordlist(self, filepath: Path) -> int:

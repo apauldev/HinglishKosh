@@ -1,6 +1,5 @@
 """Tests for the WordNet loader."""
 
-
 import pytest
 
 from src.ingestion.wordnet_loader import (
@@ -39,8 +38,8 @@ class TestParseSynsetFile:
     def test_parse_valid_file(self, tmp_path):
         synset_file = tmp_path / "all.hindi"
         synset_file.write_text(
-            "100001\tजीव,प्राणी,प्राण\tजीवित चीज़:\"वह एक जीव है\"\tnoun\n"
-            "100002\tपानी,जल\tH2O का रासायनिक नाम:\"पानी पियो\"\tnoun\n",
+            '100001\tजीव,प्राणी,प्राण\tजीवित चीज़:"वह एक जीव है"\tnoun\n'
+            '100002\tपानी,जल\tH2O का रासायनिक नाम:"पानी पियो"\tnoun\n',
             encoding="utf-8",
         )
         entries = parse_synset_file(synset_file)
@@ -53,9 +52,7 @@ class TestParseSynsetFile:
     def test_skip_malformed_lines(self, tmp_path):
         synset_file = tmp_path / "all.hindi"
         synset_file.write_text(
-            "100001\tजीव\tगloss\tnoun\n"
-            "bad_line\n"
-            "100002\tपानी\tdefinition\tnoun\n",
+            "100001\tजीव\tगloss\tnoun\nbad_line\n100002\tपानी\tdefinition\tnoun\n",
             encoding="utf-8",
         )
         entries = parse_synset_file(synset_file)
@@ -74,8 +71,7 @@ class TestLoadWordnet:
         synsets_dir.mkdir()
         synset_file = synsets_dir / "all.hindi"
         synset_file.write_text(
-            "100001\tजीव,प्राणी\tजीवित चीज़:\"वह जीव है\"\tnoun\n"
-            "100002\tनमस्ते\tअभिवादन\tinterjection\n",
+            '100001\tजीव,प्राणी\tजीवित चीज़:"वह जीव है"\tnoun\n100002\tनमस्ते\tअभिवादन\tinterjection\n',
             encoding="utf-8",
         )
 
@@ -98,9 +94,7 @@ class TestLoadEnglishHindiLinkage:
     def test_load_linkage(self, tmp_path):
         tsv_file = tmp_path / "english-hindi-linked.tsv"
         tsv_file.write_text(
-            "# comment line\n"
-            "100001\t100001\tliving_thing\tजीव\n"
-            "100002\t100002\twater\tपानी\n",
+            "# comment line\n100001\t100001\tliving_thing\tजीव\n100002\t100002\twater\tपानी\n",
             encoding="utf-8",
         )
         linkage = load_english_hindi_linkage(tsv_file)

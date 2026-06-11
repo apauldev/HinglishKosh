@@ -1,7 +1,5 @@
 """Tests for API and integration modules."""
 
-
-
 from src.api.main import _fuzzy_search, create_app
 from src.integration.aosp_dict_export import export_aosp_dict, export_words_txt
 from src.integration.sqlite_export import export_sqlite_fts, search_sqlite
@@ -51,6 +49,7 @@ SAMPLE_ENTRIES = [
 class TestFuzzySearch:
     def setup_method(self):
         import src.api.main as api_module
+
         api_module._dictionary = SAMPLE_ENTRIES
 
     def test_exact_match_hindi(self):
@@ -85,6 +84,7 @@ class TestAppCreation:
 
 # === AOSP Export Tests ===
 
+
 class TestAospExport:
     def test_export_dict(self, tmp_path):
         output = tmp_path / "test.dict"
@@ -103,6 +103,7 @@ class TestAospExport:
 
 
 # === SQLite Export Tests ===
+
 
 class TestSqliteExport:
     def test_export_and_search(self, tmp_path):

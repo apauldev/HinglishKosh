@@ -72,11 +72,7 @@ class TestExtractDefinition:
 
 class TestExtractExample:
     def test_from_dict_example(self):
-        sense = {
-            "examples": [
-                {"text": "पानी पियो", "translation": "Drink water"}
-            ]
-        }
+        sense = {"examples": [{"text": "पानी पियो", "translation": "Drink water"}]}
         result = _extract_example(sense)
         assert "पानी पियो" in result
         assert "Drink water" in result

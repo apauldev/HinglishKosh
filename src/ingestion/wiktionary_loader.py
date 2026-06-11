@@ -108,7 +108,10 @@ def parse_wiktionary_jsonl(filepath: Path, lang_code: str = "hi") -> list[dict[s
 
     logger.info(
         "Parsed %d entries for lang=%s (skipped %d other langs, %d malformed)",
-        len(entries), lang_code, skipped, malformed,
+        len(entries),
+        lang_code,
+        skipped,
+        malformed,
     )
     return entries
 
@@ -160,23 +163,25 @@ def load_wiktionary(data_dir: Path, lang_code: str = "hi") -> list[dict[str, Any
             synonyms = [s.get("word", "") for s in sense.get("synonyms", []) if s.get("word")]
             antonyms = [s.get("word", "") for s in sense.get("antonyms", []) if s.get("word")]
 
-            normalized.append({
-                "id": entry_id,
-                "word_hindi": word,
-                "word_hinglish_roman": roman,
-                "definition": definition,
-                "part_of_speech": pos,
-                "example_sentence": example,
-                "all_examples": [example] if example else [],
-                "synsets": [],
-                "tags": tags,
-                "synonyms": synonyms,
-                "antonyms": antonyms,
-                "source": "Wiktionary",
-                "confidence_score": 0.85,
-                "toxicity_flags": [],
-                "severity_score": 0.0,
-            })
+            normalized.append(
+                {
+                    "id": entry_id,
+                    "word_hindi": word,
+                    "word_hinglish_roman": roman,
+                    "definition": definition,
+                    "part_of_speech": pos,
+                    "example_sentence": example,
+                    "all_examples": [example] if example else [],
+                    "synsets": [],
+                    "tags": tags,
+                    "synonyms": synonyms,
+                    "antonyms": antonyms,
+                    "source": "Wiktionary",
+                    "confidence_score": 0.85,
+                    "toxicity_flags": [],
+                    "severity_score": 0.0,
+                }
+            )
 
     logger.info("Normalized %d sense-level entries from Wiktionary", len(normalized))
     return normalized
