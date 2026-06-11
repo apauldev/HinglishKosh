@@ -139,9 +139,12 @@ class ToxicityClassifier:
         except Exception as e:
             logger.error("Batch classification failed: %s", e)
             # Fallback to sequential
-            return [self._classify_with_model(t) if t and t.strip() else
-                    {"toxic": False, "toxicity_score": 0.0, "model_used": "none", "labels": []}
-                    for t in texts]
+            return [
+                self._classify_with_model(t)
+                if t and t.strip()
+                else {"toxic": False, "toxicity_score": 0.0, "model_used": "none", "labels": []}
+                for t in texts
+            ]
 
     def _classify_with_model(self, text: str) -> dict[str, Any]:
         """Classify using the loaded ML model."""
