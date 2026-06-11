@@ -1,0 +1,36 @@
+# Data
+data/raw/
+data/processed/
+data/output/
+*.jsonl.gz
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ML models (downloaded at runtime)
+models/
+
+# Secrets
+.env
+*.key
