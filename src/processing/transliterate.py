@@ -37,17 +37,60 @@ _DEVANAGARI_MAP = {
 
 # Common Hindi words with well-known romanizations
 _COMMON_WORDS = {
-    "नमस्ते": "namaste", "पानी": "paani", "खाना": "khana", "सोना": "sona",
-    "किताब": "kitab", "घर": "ghar", "दूध": "doodh", "चाय": "chai",
-    "रोटी": "roti", "दाल": "daal", "चावल": "chawal", "मछली": "machli",
-    "सब्ज़ी": "sabzi", "मीठा": "meetha", "खट्टा": "khatta", "नमक": "namak",
-    "मिर्च": "mirch", "हल्दी": "haldi", "जीरा": "jeera", "अदरक": "adrak",
-    "लहसुन": "lahsun", "प्याज़": "pyaaz", "टमाटर": "tamatar", "आलू": "aaloo",
-    "पनीर": "paneer", "दही": "dahi", "लस्सी": "lassi", "जूस": "juice",
-    "केला": "kela", "सेब": "seb", "अंगूर": "angoor", "आम": "aam",
-    "नींबू": "nimbu", "इलायची": "elaichi", "दालचीनी": "dalchini",
-    "मेथी": "methi", "धनिया": "dhaniya", "पुदीना": "pudina",
+    # Greetings & basics
+    "नमस्ते": "namaste", "हाँ": "haan", "नहीं": "nahi", "हां": "haan",
+    "ठीक": "theek", "बिल्कुल": "bilkul", "धन्यवाद": "dhanyavaad",
+    "माफ़": "maaf", "कृपया": "kripya",
+    # Food & drink
+    "पानी": "paani", "खाना": "khana", "चाय": "chai", "दूध": "doodh",
+    "रोटी": "roti", "दाल": "daal", "चावल": "chawal", "सब्ज़ी": "sabzi",
+    "मीठा": "meetha", "खट्टा": "khatta", "नमक": "namak", "मिर्च": "mirch",
+    "हल्दी": "haldi", "जीरा": "jeera", "अदरक": "adrak", "लहसुन": "lahsun",
+    "प्याज़": "pyaaz", "टमाटर": "tamatar", "आलू": "aaloo", "पनीर": "paneer",
+    "दही": "dahi", "लस्सी": "lassi", "जूस": "juice", "केला": "kela",
+    "सेब": "seb", "अंगूर": "angoor", "आम": "aam", "नींबू": "nimbu",
+    "इलायची": "elaichi", "दालचीनी": "dalchini", "मेथी": "methi",
+    "धनिया": "dhaniya", "पुदीना": "pudina", "मछली": "machli",
     "काली मिर्च": "kali mirch", "लाल मिर्च": "lal mirch",
+    # Family
+    "माँ": "maa", "पिता": "pita", "भाई": "bhai", "बहन": "behen",
+    "बेटा": "beta", "बेटी": "beti", "दादा": "dada", "दादी": "dadi",
+    "चाचा": "chacha", "चाची": "chachi", "मामा": "mama", "मामी": "mami",
+    "बुआ": "bua", "ताया": "taya", "ताई": "tai",
+    # Body
+    "सिर": "sir", "आँख": "aankh", "कान": "kaan", "नाक": "naak",
+    "मुँह": "munh", "हाथ": "haath", "पैर": "pair", "दिल": "dil",
+    "पेट": "pet", "कमर": "kamar", "गर्दन": "gardan", "कंधा": "kandha",
+    # Places
+    "घर": "ghar", "देश": "desh", "शहर": "shahar", "गाँव": "gaon",
+    "सड़क": "sadak", "बाज़ार": "bazaar", "दुकान": "dukaan",
+    "स्कूल": "school", "अस्पताल": "aspatal", "मंदिर": "mandir",
+    # Animals
+    "कुत्ता": "kutta", "बिल्ली": "billi", "गाय": "gaay", "भैंस": "bhains",
+    "घोड़ा": "ghoda", "हाथी": "haathi", "शेर": "sher", "बंदर": "bandar",
+    "चिड़िया": "chidiya", "मोर": "mor", "मछली": "machhli",
+    # Common verbs/nouns
+    "पैसा": "paisa", "काम": "kaam", "प्यार": "pyaar", "दोस्त": "dost",
+    "यार": "yaar", "बच्चा": "bachcha", "औरत": "aurat", "आदमी": "aadmi",
+    "लड़का": "ladka", "लड़की": "ladki", "बूढ़ा": "boodha", "जवान": "jawaan",
+    "अच्छा": "achcha", "बुरा": "bura", "बड़ा": "bada", "छोटा": "chhota",
+    "नया": "naya", "पुराना": "purana", "लंबा": "lamba", "छोटा": "chhota",
+    "सोना": "sona", "चाँदी": "chandi", "ताँबा": "tamba", "लोहा": "loha",
+    "आग": "aag", "हवा": "hawa", "पानी": "paani", "धूप": "dhoop",
+    "बारिश": "barish", "बर्फ़": "barf", "बिजली": "bijli",
+    "सुबह": "subah", "शाम": "shaam", "रात": "raat", "दिन": "din",
+    "रात": "raat", "आज": "aaj", "कल": "kal", "अभी": "abhi",
+    "कभी": "kabhi", "हमेशा": "hamesha", "कभी-कभी": "kabhi-kabhi",
+    # Question words
+    "क्या": "kya", "कौन": "kaun", "कहाँ": "kahaan", "कब": "kab",
+    "क्यों": "kyon", "कैसा": "kaisa", "कितना": "kitna",
+    # Numbers
+    "एक": "ek", "दो": "do", "तीन": "teen", "चार": "chaar", "पाँच": "paanch",
+    "छह": "chhah", "सात": "saat", "आठ": "aath", "नौ": "nau", "दस": "das",
+    # Adjectives
+    "बहुत": "bahut", "थोड़ा": "thoda", "सारा": "saara", "कोई": "koi",
+    "सब": "sab", "हर": "har", "कुछ": "kuch", "और": "aur",
+    "यह": "yeh", "वह": "woh", "ये": "ye", "वो": "wo",
 }
 
 
@@ -86,6 +129,59 @@ def transliterate_rule_based(text: str) -> str:
     roman = re.sub(r"\s+", " ", roman).strip()
 
     return roman
+
+
+def iso_to_hinglish(text: str) -> str:
+    """Convert ISO 15919 / academic romanization to informal Hinglish.
+
+    Strips diacritics and maps to common Indian spellings:
+      cāy → chai, āg → aag, havā → hawa, pānī → paani
+    """
+    if not text:
+        return ""
+
+    # Step 1: Strip diacritics with smart vowel handling
+    # Long vowels: ā→aa, ī→ee, ū→oo
+    # Short vowels stay as-is
+    replacements = [
+        ("ā", "aa"), ("ī", "ee"), ("ū", "oo"),
+        ("ē", "e"), ("ō", "o"),
+        ("ṛ", "ri"), ("ṝ", "ri"),
+        ("ṃ", "n"), ("ṁ", "n"), ("ḥ", "h"),
+        ("ṅ", "n"), ("ñ", "n"), ("ṇ", "n"),
+        ("ṭ", "t"), ("ḍ", "d"),
+        ("ṣ", "sh"), ("ś", "sh"),
+    ]
+    result = text
+    for old, new in replacements:
+        result = result.replace(old, new)
+
+    # Step 2: Handle trailing long vowels
+    # "aa" at end of word → "a" (havaa → hawa, sonaa → sona)
+    result = re.sub(r"aa$", "a", result)
+    # "ee" at end → "i" (paanee → paani)
+    result = re.sub(r"ee$", "i", result)
+
+    # Step 3: Common word corrections
+    lower = result.lower().strip()
+    hinglish_words = {
+        "cay": "chai", "caay": "chai",
+        "ag": "aag",
+        "pani": "paani", "panii": "paani",
+        "dudh": "doodh",
+        "kitab": "kitab", "kitaab": "kitab",
+        "machli": "machli", "machlee": "machli",
+        "sona": "sona", "sonaa": "sona",
+        "hava": "hawa", "havaa": "hawa", "hawa": "hawa",
+        "vaise": "waise", "vaisa": "waisa",
+        "vo": "wo", "voh": "woh",
+    }
+    if lower in hinglish_words:
+        return hinglish_words[lower]
+
+    # Step 4: Final cleanup
+    result = re.sub(r"\s+", " ", result).strip()
+    return result
 
 
 def transliterate(text: str, method: str = "rule_based") -> str:

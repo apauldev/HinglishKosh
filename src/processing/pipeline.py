@@ -19,7 +19,7 @@ from src.ingestion.supplemental_loader import load_supplemental
 from src.ingestion.wiktionary_loader import load_wiktionary
 from src.ingestion.wordnet_loader import load_english_hindi_linkage, load_wordnet
 from src.processing.merge import assign_ids, merge_dictionaries
-from src.processing.transliterate import transliterate
+from src.processing.transliterate import iso_to_hinglish, transliterate
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,9 +29,19 @@ logger = logging.getLogger(__name__)
 
 
 def _ensure_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Fill in romanized forms for entries missing them."""
+    """Convert all romanized forms to informal Hinglish.
+
+    - Wiktionary entries have ISO 15919 romanization (cāy, āg, havā)
+    - We convert to informal Hinglish (chai, aag, hawa)
+    - WordNet entries get rule-based transliteration
+    """
     for entry in entries:
-        if not entry.get("word_hinglish_roman"):
+        roman = entry.get("word_hinglish_roman", "")
+        if roman:
+            # Convert ISO/academic to informal Hinglish
+            entry["word_hinglish_roman"] = iso_to_hinglish(roman)
+        else:
+            # No roman — generate from Devanagari
             entry["word_hinglish_roman"] = transliterate(entry.get("word_hindi", ""))
     return entries
 

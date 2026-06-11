@@ -78,28 +78,23 @@ class TestHindiToHinglishLookup:
         )
 
     @pytest.mark.parametrize("hindi,expected_roman", [
-        ("पानी", "pani"),
+        ("पानी", "paani"),
         ("घर", "ghar"),
         ("नमस्ते", "namaste"),
         ("किताब", "kitab"),
-        ("दूध", "dudh"),
-        ("चाय", "cay"),       # ISO 15919: cāy
+        ("दूध", "doodh"),
+        ("चाय", "chai"),
         ("मछली", "machli"),
         ("सोना", "sona"),
-        ("आग", "ag"),         # ISO 15919: āg
-        ("हवा", "hava"),      # ISO 15919: havā
+        ("आग", "aag"),
+        ("हवा", "hawa"),
     ])
     def test_hindi_to_roman(self, lookup, hindi, expected_roman):
-        """Test romanized forms (diacritic-free Hinglish spelling)."""
+        """Test romanized forms (informal Hinglish spelling, no diacritics)."""
         assert hindi in lookup, f"'{hindi}' not found in dictionary"
         roman = lookup[hindi]["word_hinglish_roman"].lower()
-        original_roman = lookup[hindi]["word_hinglish_roman"]
-        # Strip common diacritics for comparison
-        for ch, rep in [("ā","a"),("ī","i"),("ū","u"),("ē","e"),("ō","o"),
-                         ("ṃ","m"),("ḥ","h"),("ṅ","n"),("ñ","n")]:
-            roman = roman.replace(ch, rep)
-        assert expected_roman.lower() in roman, (
-            f"'{hindi}' roman '{original_roman}' stripped to '{roman}' does not match '{expected_roman}'"
+        assert roman == expected_roman.lower(), (
+            f"'{hindi}' roman '{roman}' does not match expected '{expected_roman}'"
         )
 
     def test_lookup_returns_pos(self, lookup):
