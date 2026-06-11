@@ -60,7 +60,9 @@ def cmd_lookup(args):
         print(f"  Definition: {entry.get('definition', 'N/A')}")
         if entry.get("example_sentence"):
             print(f"  Example: {entry['example_sentence']}")
-        print(f"  Source: {entry.get('source', 'N/A')} | Confidence: {entry.get('confidence_score', 0)}")
+        source = entry.get('source', 'N/A')
+        confidence = entry.get('confidence_score', 0)
+        print(f"  Source: {source} | Confidence: {confidence}")
         if entry.get("toxicity_flags"):
             print(f"  Flags: {', '.join(entry['toxicity_flags'])}")
 
@@ -116,7 +118,7 @@ def cmd_stats(args):
     dictionary = data.get("dictionary", [])
 
     print(f"\n{'═' * 50}")
-    print(f"  HinglishKosh (हिंग्लिशकोश) — Dataset Statistics")
+    print("  HinglishKosh (हिंग्लिशकोश) — Dataset Statistics")
     print(f"{'═' * 50}")
     print(f"  Name:            {meta.get('name', 'N/A')}")
     print(f"  Version:         {meta.get('version', 'N/A')}")
@@ -126,13 +128,13 @@ def cmd_stats(args):
 
     source_counts = meta.get("source_counts", {})
     if source_counts:
-        print(f"\n  Sources:")
+        print("\n  Sources:")
         for src, count in source_counts.items():
             print(f"    {src}: {count:,}")
 
     pos_dist = meta.get("pos_distribution", {})
     if pos_dist:
-        print(f"\n  Part of Speech Distribution:")
+        print("\n  Part of Speech Distribution:")
         for pos, count in sorted(pos_dist.items(), key=lambda x: -x[1]):
             print(f"    {pos}: {count:,}")
 

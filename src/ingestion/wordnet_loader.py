@@ -8,10 +8,7 @@ Download source: Dropbox link via pyiwn or direct download.
 
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
-import re
 from pathlib import Path
 from typing import Any
 
@@ -56,10 +53,16 @@ def parse_synset_file(filepath: Path) -> list[dict[str, Any]]:
                 continue
             parts = line.split("\t")
             if len(parts) < 4:
-                logger.warning("Skipping malformed line %d in %s: %s", lineno, filepath.name, line[:80])
+                logger.warning(
+                    "Skipping malformed line %d in %s: %s",
+                    lineno, filepath.name, line[:80]
+                )
                 continue
 
-            synset_id_str, words_str, gloss_examples_str, pos = parts[0], parts[1], parts[2], parts[3]
+            synset_id_str = parts[0]
+            words_str = parts[1]
+            gloss_examples_str = parts[2]
+            pos = parts[3]
 
             try:
                 synset_id = int(synset_id_str)

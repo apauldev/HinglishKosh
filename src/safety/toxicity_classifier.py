@@ -18,7 +18,11 @@ class ToxicityClassifier:
     Falls back to a simple heuristic if model is unavailable.
     """
 
-    def __init__(self, model_name: str = "tsmaitry/indic-toxicity-detector", threshold: float = 0.70):
+    def __init__(
+        self,
+        model_name: str = "tsmaitry/indic-toxicity-detector",
+        threshold: float = 0.70,
+    ):
         """Initialize the classifier.
 
         Args:

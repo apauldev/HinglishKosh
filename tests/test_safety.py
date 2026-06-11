@@ -1,9 +1,6 @@
 """Tests for safety filter modules."""
 
 import json
-from pathlib import Path
-
-import pytest
 
 from src.safety.profanity_list import ProfanityMatcher
 from src.safety.severity_scorer import compute_severity, flag_entries

@@ -1,7 +1,5 @@
 """Tests for the WordNet loader."""
 
-import tempfile
-from pathlib import Path
 
 import pytest
 

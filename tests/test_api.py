@@ -1,15 +1,10 @@
 """Tests for API and integration modules."""
 
-import json
-import sqlite3
-from pathlib import Path
 
-import pytest
 
 from src.api.main import _fuzzy_search, create_app
 from src.integration.aosp_dict_export import export_aosp_dict, export_words_txt
 from src.integration.sqlite_export import export_sqlite_fts, search_sqlite
-
 
 # === API Tests ===
 

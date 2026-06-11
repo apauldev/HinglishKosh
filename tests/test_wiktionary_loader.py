@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Optional
 
 import pytest
 
@@ -21,9 +19,9 @@ def _make_wiktionary_line(
     word: str = "पानी",
     lang_code: str = "hi",
     pos: str = "noun",
-    glosses: Optional[list] = None,
-    examples: Optional[list] = None,
-    forms: Optional[list] = None,
+    glosses: list | None = None,
+    examples: list | None = None,
+    forms: list | None = None,
 ) -> str:
     """Helper to create a valid wiktionary JSONL line."""
     entry = {

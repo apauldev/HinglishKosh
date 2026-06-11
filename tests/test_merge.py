@@ -1,9 +1,7 @@
 """Tests for deduplication and merge modules."""
 
-import pytest
 
 from src.processing.dedup import (
-    _definition_hash,
     _normalize_hindi,
     _normalize_roman,
     deduplicate_entries,

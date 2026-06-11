@@ -24,9 +24,12 @@ def _load_csv_dataset(filepath: Path) -> list[dict[str, Any]]:
 
         for row in reader:
             # Try to find Hindi word column
-            hindi_col = cols.get("hindi") or cols.get("word_hindi") or cols.get("hindi_word") or cols.get("word")
-            eng_col = cols.get("english") or cols.get("definition") or cols.get("meaning") or cols.get("eng")
-            roman_col = cols.get("roman") or cols.get("hinglish") or cols.get("romanized") or cols.get("transliteration")
+            hindi_col = (cols.get("hindi") or cols.get("word_hindi")
+                         or cols.get("hindi_word") or cols.get("word"))
+            eng_col = (cols.get("english") or cols.get("definition")
+                       or cols.get("meaning") or cols.get("eng"))
+            roman_col = (cols.get("roman") or cols.get("hinglish")
+                         or cols.get("romanized") or cols.get("transliteration"))
             pos_col = cols.get("pos") or cols.get("part_of_speech") or cols.get("type")
 
             word_hindi = (row.get(hindi_col) or "").strip() if hindi_col else ""
@@ -108,9 +111,12 @@ def load_supplemental(data_dir: Path) -> list[dict[str, Any]]:
 
         # Normalize entries into unified schema
         for entry in entries:
-            word = entry.get("word_hindi") or entry.get("hindi") or entry.get("word") or ""
-            definition = entry.get("definition") or entry.get("meaning") or entry.get("english") or ""
-            roman = entry.get("word_hinglish_roman") or entry.get("roman") or entry.get("hinglish") or ""
+            word = (entry.get("word_hindi") or entry.get("hindi")
+                    or entry.get("word") or "")
+            definition = (entry.get("definition") or entry.get("meaning")
+                          or entry.get("english") or "")
+            roman = (entry.get("word_hinglish_roman") or entry.get("roman")
+                     or entry.get("hinglish") or "")
             pos = entry.get("part_of_speech") or entry.get("pos") or entry.get("type") or ""
 
             if not word and not definition:
