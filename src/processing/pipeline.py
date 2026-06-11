@@ -129,6 +129,7 @@ def run_pipeline(
 
     # Build safe dataset (filter toxic entries)
     safe_entries = [e for e in merged if e.get("severity_score", 0) < 0.5]
+    excluded_entries = [e for e in merged if e.get("severity_score", 0) >= 0.5]
 
     # Build full dataset
     dataset = {
@@ -187,18 +188,42 @@ def run_pipeline(
         json.dump(safe_dataset, f, ensure_ascii=False, separators=(",", ":"))
     logger.info("Wrote safe compact JSON to %s", safe_compact_file)
 
+    # Write excluded words list
+    exclude_file = output_dir / "hinglish_dictionary_v1_excluded.json"
+    excluded_words = [
+        {
+            "word_hindi": e.get("word_hindi", ""),
+            "word_hinglish_roman": e.get("word_hinglish_roman", ""),
+            "definition": e.get("definition", ""),
+            "severity_score": e.get("severity_score", 0),
+            "toxicity_flags": e.get("toxicity_flags", []),
+            "source": e.get("source", ""),
+        }
+        for e in excluded_entries
+    ]
+    with open(exclude_file, "w", encoding="utf-8") as f:
+        json.dump(
+            {"meta": {"total_excluded": len(excluded_words)}, "excluded": excluded_words},
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
+    logger.info("Wrote %d excluded entries to %s", len(excluded_words), exclude_file)
+
     # Print summary
     print(f"\n{'=' * 60}")
     print("  HinglishKosh (हिंग्लिशकोश) — Pipeline Complete")
     print(f"{'=' * 60}")
     print(f"  Total entries:  {len(merged):,}")
     print(f"  Safe entries:   {len(safe_entries):,} (severity < 0.5)")
+    print(f"  Excluded:       {len(excluded_words):,} (severity >= 0.5)")
     print(f"  WordNet:        {sources.get('WordNet', 0):,}")
     print(f"  Wiktionary:     {sources.get('Wiktionary', 0):,}")
     supp_count = sum(v for k, v in sources.items() if k.startswith("supplemental"))
     print(f"  Supplemental:   {supp_count:,}")
     print(f"  Output:         {output_file}")
     print(f"  Safe output:    {safe_file}")
+    print(f"  Excluded:       {exclude_file}")
     print(f"{'=' * 60}\n")
 
     return dataset["meta"]
