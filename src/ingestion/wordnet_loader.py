@@ -92,9 +92,15 @@ def load_wordnet(data_dir: Path) -> list[dict[str, Any]]:
 
     Returns a list of normalized dictionary entries.
     """
+    # Check common extraction layouts
     synsets_dir = data_dir / "synsets"
     if not synsets_dir.exists():
-        raise FileNotFoundError(f"Synsets directory not found: {synsets_dir}")
+        # Handle iwn_data.tar.gz extraction: data_dir/iwn_data/synsets/
+        iwn_synsets = data_dir / "iwn_data" / "synsets"
+        if iwn_synsets.exists():
+            synsets_dir = iwn_synsets
+        else:
+            raise FileNotFoundError(f"Synsets directory not found: {synsets_dir}")
 
     # Load all language synset files (focus on Hindi)
     hindi_file = synsets_dir / "all.hindi"
