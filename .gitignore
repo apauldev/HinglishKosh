@@ -34,3 +34,4 @@ models/
 # Secrets
 .env
 *.key
+.commandcode/taste/taste.md

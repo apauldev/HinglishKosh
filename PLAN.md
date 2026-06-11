@@ -140,10 +140,42 @@
 - [ ] Add dataset viewer
 - [ ] Document usage examples
 
-### Task 5.3: Documentation
-- [ ] Add API documentation (OpenAPI/Swagger)
-- [ ] Create integration guides for popular keyboards
-- [ ] Write blog post announcing the project
+### Task 5.3: Documentation ✅
+- [x] Write `docs/architecture.md` — full pipeline breakdown: ingestion, transliteration, merge/dedup, safety filter, API, CLI, exports, schema, tests, CI/CD
+- [x] Write `docs/optimizations.md` — prioritized optimization analysis: Do First / Do Next / Do Later / Don't Bother tiers
+
+---
+
+## Phase 6: Quick-Win Optimizations ⏳
+
+> See `docs/optimizations.md` for full analysis. These are high-impact, low-effort changes that address real, measurable problems. Profile before implementing — `python -m cProfile -s cumulative -m src.processing.pipeline`.
+
+### Task 6.1: Hash index for API exact lookup ⏳
+- [ ] Pre-build `dict[str, list[int]]` mapping normalized headwords to array indices at API startup
+- [ ] Exact lookups become O(1) instead of O(n) — ~0.1ms instead of ~15ms
+- [ ] Fallback to linear scan for partial/substring matches
+- [ ] Add test: verify hash index matches linear scan results
+
+### Task 6.2: SQLite for CLI startup ⏳
+- [ ] Generate `hinglish_dict.db` during pipeline (after merge, before JSON write)
+- [ ] Create FTS5 virtual table for search
+- [ ] Update CLI to query SQLite instead of loading full JSON
+- [ ] Startup drops from 2-4s to <100ms
+
+### Task 6.3: Move `_COMMON_WORDS` to data file ⏳
+- [ ] Extract 600+ entries from `src/processing/transliterate.py` to `data/common_words.json`
+- [ ] Load on first use (lazy), not at import time
+- [ ] Reduce `transliterate.py` from ~925 lines to ~600
+- [ ] Add test: verify all common words still romanize correctly
+
+### Task 6.4: API response caching ⏳
+- [ ] Add `cachetools.TTLCache` for `/lookup` and `/search` results
+- [ ] TTL: 1 hour, maxsize: 1000 entries
+- [ ] Common words (`पानी`, `प्यार`, `घर`) hit cache on repeat queries
+
+### Task 6.5: Parallel data loading ⏳
+- [ ] Load WordNet, Wiktionary, supplemental concurrently with `ThreadPoolExecutor`
+- [ ] ~3x faster pipeline startup
 
 ---
 
@@ -189,13 +221,16 @@ hinglish-dict/
 │   ├── raw/                 # Downloaded source data (gitignored)
 │   ├── processed/           # Intermediate processing (gitignored)
 │   └── output/              # Final dataset (gitignored, in releases)
+├── docs/
+│   ├── architecture.md      # Full system architecture
+│   └── optimizations.md     # Performance optimization analysis
 ├── scripts/
 │   ├── download_data.sh
 │   ├── release.sh
 │   └── upload_hf.sh
 └── .github/
     └── workflows/
-        └── ci.yml           # TODO: Create CI pipeline
+        └── ci.yml           # ✅ GitHub Actions lint + test on push/PR
 ```
 
 ---
@@ -262,5 +297,6 @@ dependencies = [
 | Phase 3: Safety Filter | ✅ Complete | — |
 | Phase 4: API & Integration | ✅ Complete | — |
 | Phase 5: Distribution | ⏳ Pending | — |
+| Phase 6: Quick-Win Optimizations | ⏳ Pending | — |
 
-**Current Status**: Core dictionary generated with 209K entries. All 701 tests passing. Ready for distribution.
+**Current Status**: Core dictionary generated with 209K entries. 701 tests passing. Architecture and optimization docs written. Ready for distribution and performance tuning.
