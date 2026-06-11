@@ -2,7 +2,6 @@
 data/raw/
 !data/raw/profanity/
 data/processed/
-data/output/
 *.jsonl.gz
 
 # Python
