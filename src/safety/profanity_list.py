@@ -1,151 +1,136 @@
-"""Profanity wordlist management — dictionary-based offensive content detection.
-
-Compiles a master profanity list from multiple sources with severity levels.
-"""
+"""Profanity wordlist loader and fast lookup for the safety filter."""
 
 from __future__ import annotations
 
 import json
-import logging
 import re
 from pathlib import Path
-from typing import Any
 
-logger = logging.getLogger(__name__)
+# Path to the curated profanity wordlist
+_PROFANITY_LIST_PATH = (
+    Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "profanity"
+) / "master_list.json"
 
-# Built-in common Hindi/Hinglish profanity (abbreviated for licensing reasons)
-# In production, load from bekindprofanityfilter or curated wordlist files.
-_BUILTIN_PROFANITY: dict[str, dict[str, Any]] = {
-    # Format: "word": {"severity": 0.0-1.0, "category": "profanity|hate_speech|slur"}
-    # This is a placeholder — real data should be loaded from external files.
-}
+
+def _normalize_word(word: str) -> str:
+    """Normalize a word for matching: lowercase, strip accents, collapse whitespace."""
+    w = word.strip().lower()
+    # Remove accent characters (common in transliterated Hindi)
+    replacements = {
+        "ā": "a",
+        "ī": "i",
+        "ū": "u",
+        "ē": "e",
+        "ō": "o",
+        "ṛ": "r",
+        "ṇ": "n",
+        "ṣ": "s",
+        "ḥ": "h",
+        "ṁ": "m",
+    }
+    for old, new in replacements.items():
+        w = w.replace(old, new)
+    # Remove anything that's not alphanumeric or space
+    w = re.sub(r"[^a-z0-9\s]", "", w)
+    return w.strip()
+
+
+def load_profanity_list(custom_path: str | Path | None = None) -> set[str]:
+    """Load profanity words from the master list JSON file.
+
+    Returns a set of normalized lowercase words for fast O(1) lookup.
+    """
+    path = Path(custom_path) if custom_path else _PROFANITY_LIST_PATH
+
+    if not path.exists():
+        # Fallback: return empty set rather than crash
+        return set()
+
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    raw_words: list[str] = data.get("words", [])
+    normalized = {_normalize_word(w) for w in raw_words if w.strip()}
+    # Remove empty strings
+    normalized.discard("")
+    return normalized
+
+
+# Module-level cached instance (loaded once at import time)
+_PROFANITY_SET: set[str] = set()
+
+
+def get_profanity_set() -> set[str]:
+    """Return the cached profanity word set, loading it on first call."""
+    global _PROFANITY_SET
+    if not _PROFANITY_SET:
+        _PROFANITY_SET = load_profanity_list()
+    return _PROFANITY_SET
+
+
+def _normalize_text(text: str) -> str:
+    """Normalize text for matching: lowercase, strip accents, keep alphanumeric + spaces."""
+    t = text.strip().lower()
+    replacements = {
+        "ā": "a",
+        "ī": "i",
+        "ū": "u",
+        "ē": "e",
+        "ō": "o",
+        "ṛ": "r",
+        "ṇ": "n",
+        "ṣ": "s",
+        "ḥ": "h",
+        "ṁ": "m",
+    }
+    for old, new in replacements.items():
+        t = t.replace(old, new)
+    t = re.sub(r"[^a-z0-9\s]", "", t)
+    return t
+
+
+def check_profanity(text: str, custom_list: str | Path | None = None) -> bool:
+    """Check if text contains any profanity words.
+
+    Args:
+        text: The text to check (Hindi or English).
+        custom_list: Optional path to a custom profanity list file.
+
+    Returns:
+        True if any profanity word is found in the text, False otherwise.
+    """
+    if not text or not text.strip():
+        return False
+
+    profanity_set = get_profanity_set() if not custom_list else load_profanity_list(custom_list)
+
+    if not profanity_set:
+        return False
+
+    normalized = _normalize_text(text)
+
+    # Check each word in the text against the profanity set
+    for word in normalized.split():
+        if word in profanity_set:
+            return True
+
+    return False
 
 
 class ProfanityMatcher:
-    """Dictionary-based profanity detection with character variation support."""
+    """Simple profanity matcher using dictionary lookup."""
 
-    def __init__(self, wordlist_path: Path | None = None, threshold: float = 0.70):
-        """Initialize with an optional external wordlist file.
+    def __init__(self, custom_list: str | Path | None = None) -> None:
+        self.wordlist = load_profanity_list(custom_list)
 
-        Args:
-            wordlist_path: Path to JSON wordlist file.
-            threshold: Minimum severity score to flag (0.0-1.0).
-        """
-        self.threshold = threshold
-        self.wordlist: dict[str, dict[str, Any]] = dict(_BUILTIN_PROFANITY)
-        self._char_map = self._build_char_map()
-
-        if wordlist_path and wordlist_path.exists():
-            self.load_wordlist(wordlist_path)
-
-    def _build_char_map(self) -> dict[str, str]:
-        """Build leet-speak / character substitution map."""
-        return {
-            "0": "o",
-            "1": "i",
-            "3": "e",
-            "4": "a",
-            "5": "s",
-            "7": "t",
-            "8": "b",
-            "9": "g",
-            "@": "a",
-            "$": "s",
-            "!": "i",
-            "+": "t",
-            "ph": "f",
-            "kk": "k",
-            # Devanagari-Roman common substitutions
-            "aa": "a",
-            "ee": "e",
-            "oo": "o",
-            "ii": "i",
-            "uu": "u",
-        }
-
-    def load_wordlist(self, filepath: Path) -> int:
-        """Load profanity wordlist from JSON file.
-
-        Expected format:
-        {
-            "word": {"severity": 0.9, "category": "profanity"},
-            ...
-        }
-
-        Returns number of entries loaded.
-        """
-        try:
-            with open(filepath, encoding="utf-8") as f:
-                data = json.load(f)
-            count = 0
-            for word, meta in data.items():
-                self.wordlist[word.lower()] = meta
-                count += 1
-            logger.info("Loaded %d profanity entries from %s", count, filepath.name)
-            return count
-        except (json.JSONDecodeError, OSError) as e:
-            logger.error("Failed to load wordlist from %s: %s", filepath, e)
-            return 0
-
-    def _normalize(self, text: str) -> str:
-        """Normalize text for matching."""
-        text = text.lower().strip()
-        # Apply character substitutions
-        for old, new in self._char_map.items():
-            text = text.replace(old, new)
-        # Remove non-alphanumeric
-        text = re.sub(r"[^\w\s]", "", text)
-        text = re.sub(r"\s+", " ", text)
-        return text
-
-    def check_word(self, word: str) -> dict[str, Any] | None:
-        """Check a single word against the profanity list.
-
-        Returns match info dict or None if clean.
-        """
-        normalized = self._normalize(word)
-
-        # Direct match
-        if normalized in self.wordlist:
-            entry = self.wordlist[normalized]
-            return {
-                "matched": True,
-                "input": word,
-                "normalized": normalized,
-                "severity": entry.get("severity", 0.5),
-                "category": entry.get("category", "profanity"),
-                "match_type": "direct",
-            }
-
-        # Check if word contains a profanity substring
-        for profanity, meta in self.wordlist.items():
-            if len(profanity) >= 3 and profanity in normalized:
-                return {
-                    "matched": True,
-                    "input": word,
-                    "normalized": normalized,
-                    "matched_word": profanity,
-                    "severity": meta.get("severity", 0.5),
-                    "category": meta.get("category", "profanity"),
-                    "match_type": "substring",
-                }
-
-        return None
-
-    def check_text(self, text: str) -> list[dict[str, Any]]:
-        """Check a full text for profanity matches.
-
-        Returns list of all matches found.
-        """
-        words = text.split()
-        matches = []
-        for word in words:
-            result = self.check_word(word)
-            if result:
-                matches.append(result)
-        return matches
-
-    def is_clean(self, text: str) -> bool:
-        """Check if text is clean (no profanity above threshold)."""
-        matches = self.check_text(text)
-        return not any(m["severity"] >= self.threshold for m in matches)
+    def contains_profanity(self, text: str) -> bool:
+        """Check if text contains any profanity words."""
+        if not self.wordlist:
+            return False
+        if not text or not text.strip():
+            return False
+        normalized = _normalize_text(text)
+        for word in normalized.split():
+            if word in self.wordlist:
+                return True
+        return False

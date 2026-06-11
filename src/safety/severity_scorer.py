@@ -1,140 +1,72 @@
-"""Severity scoring — multi-model consensus for toxicity detection.
+"""Severity scoring for Hindi profanity entries — dictionary-only mode.
 
-Combines dictionary-based and ML-based results into a unified severity score.
+This module uses the pre-built profanity wordlist to flag entries.
+No ML inference — fast and deterministic.
 """
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from src.safety.profanity_list import ProfanityMatcher
 
 
-def compute_severity(
-    wordlist_matches: list[dict[str, Any]],
-    ml_result: dict[str, Any],
-    weights: tuple[float, float] = (0.4, 0.6),
-) -> dict[str, Any]:
-    """Compute combined severity score from dictionary and ML results.
+def score_severity(
+    word: str,
+    pos: str = "",
+    gloss: str = "",
+    gloss_hi: str = "",
+    examples: str = "",
+    **_kwargs: object,
+) -> dict[str, object]:
+    """Check if a word contains profanity using dictionary lookup.
 
     Args:
-        wordlist_matches: Results from ProfanityMatcher.check_text().
-        ml_result: Result from ToxicityClassifier.classify().
-        weights: (dictionary_weight, ml_weight). Must sum to 1.0.
+        word: The Hindi word (romanized).
+        pos: Part of speech (unused in dict-only mode).
+        gloss: English gloss (used for profanity check).
+        gloss_hi: Hindi gloss in Devanagari (unused in dict-only mode).
+        examples: Example sentences (used for profanity check).
+        **_kwargs: Additional fields (ignored).
 
     Returns:
-        {
-            "severity_score": float (0.0-1.0),
-            "toxicity_flags": list of flag strings,
-            "is_toxic": bool,
-            "components": dict of individual scores
-        }
+        dict with:
+            - profanity: bool — True if word or examples contain profanity
+            - severity_score: float — 0.0 (clean) or 1.0 (profane), kept for schema compat
     """
-    dict_weight, ml_weight = weights
+    # Combine all text fields that might contain profanity
+    text_to_check = " ".join(filter(None, [word, gloss, examples]))
 
-    # Dictionary-based severity
-    dict_severity = 0.0
-    dict_flags = []
-    for match in wordlist_matches:
-        sev = match.get("severity", 0.0)
-        cat = match.get("category", "profanity")
-        dict_severity = max(dict_severity, sev)
-        if cat not in dict_flags:
-            dict_flags.append(cat)
-
-    # ML-based severity
-    ml_severity = ml_result.get("toxicity_score", 0.0)
-    ml_toxic = ml_result.get("toxic", False)
-
-    # Combined severity
-    combined_score = (dict_severity * dict_weight) + (ml_severity * ml_weight)
-
-    # Build flags
-    toxicity_flags = list(set(dict_flags))
-    if ml_toxic and "contextual_toxicity" not in toxicity_flags:
-        toxicity_flags.append("contextual_toxicity")
-
-    # Determine overall toxicity
-    is_toxic = combined_score >= 0.5 or (dict_severity >= 0.8) or ml_toxic
+    matcher = ProfanityMatcher()
+    is_profane = matcher.contains_profanity(text_to_check)
 
     return {
-        "severity_score": round(combined_score, 4),
-        "toxicity_flags": toxicity_flags,
-        "is_toxic": is_toxic,
-        "components": {
-            "dictionary_severity": dict_severity,
-            "ml_severity": ml_severity,
-            "dictionary_flags": dict_flags,
-            "ml_labels": ml_result.get("labels", []),
-        },
+        "profanity": is_profane,
+        "severity_score": 1.0 if is_profane else 0.0,
     }
 
 
 def flag_entries(
     entries: list[dict[str, Any]],
-    profanity_matcher: Any,
-    toxicity_classifier: Any,
-    threshold: float = 0.70,
+    profanity_matcher: ProfanityMatcher,
+    _toxicity_classifier: Any = None,
 ) -> list[dict[str, Any]]:
-    """Process dictionary entries through the safety filter.
+    """Flag all entries with profanity using dictionary-only lookup.
 
-    Adds toxicity_flags and severity_score to each entry.
-    Uses batch ML inference for performance.
+    Args:
+        entries: List of dictionary entries.
+        profanity_matcher: ProfanityMatcher instance.
+        _toxicity_classifier: Ignored (ML not used in dict-only mode).
+
+    Returns:
+        Same list with `profanity` and `severity_score` fields added.
     """
-    import logging
-
-    logger = logging.getLogger(__name__)
-    total = len(entries)
-
-    # Phase 1: Dictionary check (fast)
-    logger.info("Phase 1/2: Dictionary check on %d entries...", total)
-    dict_matches_list = []
     for entry in entries:
-        word = entry.get("word_hindi", "")
-        definition = entry.get("definition", "")
-        example = entry.get("example_sentence", "")
-        check_text = f"{word} {definition} {example}".strip()
-        dict_matches = profanity_matcher.check_text(check_text)
-        dict_matches_list.append(dict_matches)
+        word = entry.get("word_hinglish_roman", "")
+        # Only check the word itself, not definitions/examples
+        # This avoids false positives like "land" in "land of the Aryans"
+        is_profane = profanity_matcher.contains_profanity(word)
+        entry["profanity"] = is_profane
+        entry["severity_score"] = 1.0 if is_profane else 0.0
 
-    # Phase 2: ML check (batched if available)
-    logger.info("Phase 2/2: ML toxicity check on %d entries...", total)
-    if toxicity_classifier.is_available and hasattr(toxicity_classifier, "classify_batch"):
-        # Batch ML inference
-        texts = []
-        for entry in entries:
-            word = entry.get("word_hindi", "")
-            definition = entry.get("definition", "")
-            example = entry.get("example_sentence", "")
-            texts.append(f"{word} {definition} {example}".strip())
-
-        logger.info("Running batch ML inference (batch_size=256)...")
-        ml_results = toxicity_classifier.classify_batch(texts)
-        logger.info("Batch ML inference complete")
-    else:
-        # Sequential fallback
-        logger.info("Running sequential ML inference...")
-        ml_results = []
-        for i, entry in enumerate(entries):
-            if (i + 1) % 10000 == 0:
-                logger.info("  ML progress: %d/%d", i + 1, total)
-            word = entry.get("word_hindi", "")
-            definition = entry.get("definition", "")
-            example = entry.get("example_sentence", "")
-            check_text = f"{word} {definition} {example}".strip()
-            ml_results.append(toxicity_classifier.classify(check_text))
-        logger.info("Sequential ML inference complete")
-
-    # Phase 3: Combine results
-    flagged = []
-    for entry, dict_matches, ml_result in zip(entries, dict_matches_list, ml_results):
-        severity = compute_severity(dict_matches, ml_result)
-        entry["toxicity_flags"] = severity["toxicity_flags"]
-        entry["severity_score"] = severity["severity_score"]
-        flagged.append(entry)
-
-    flagged_count = sum(1 for e in flagged if e.get("severity_score", 0) >= 0.5)
-    logger.info("Safety filter complete: %d/%d entries flagged", flagged_count, total)
-
-    return flagged
+    return entries

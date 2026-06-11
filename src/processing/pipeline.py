@@ -21,7 +21,6 @@ from src.processing.merge import assign_ids, merge_dictionaries
 from src.processing.transliterate import _COMMON_WORDS, iso_to_hinglish, transliterate
 from src.safety.profanity_list import ProfanityMatcher
 from src.safety.severity_scorer import flag_entries
-from src.safety.toxicity_classifier import ToxicityClassifier
 
 logging.basicConfig(
     level=logging.INFO,
@@ -123,13 +122,11 @@ def run_pipeline(
     if not skip_safety:
         logger.info("=== Running Safety Filter ===")
         profanity_matcher = ProfanityMatcher()
-        toxicity_classifier = ToxicityClassifier()
         logger.info(
-            "Safety filter ready (profanity: %s, ml: %s)",
+            "Safety filter ready (profanity: %s)",
             "loaded" if profanity_matcher.wordlist else "empty",
-            "available" if toxicity_classifier.is_available else "unavailable",
         )
-        merged = flag_entries(merged, profanity_matcher, toxicity_classifier)
+        merged = flag_entries(merged, profanity_matcher)
         flagged_count = sum(1 for e in merged if e.get("severity_score", 0) >= 0.5)
         logger.info("Safety filter complete: %d entries flagged", flagged_count)
     else:
