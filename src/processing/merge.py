@@ -125,7 +125,10 @@ def merge_dictionaries(
 
     logger.info(
         "Merge complete: %d total entries (%d WordNet + %d Wiktionary, %d merged)",
-        len(merged), len(wordnet_entries), len(wiktionary_entries), merge_count,
+        len(merged),
+        len(wordnet_entries),
+        len(wiktionary_entries),
+        merge_count,
     )
     return merged
 

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Optional
 
 import pytest
 
@@ -21,9 +19,9 @@ def _make_wiktionary_line(
     word: str = "पानी",
     lang_code: str = "hi",
     pos: str = "noun",
-    glosses: Optional[list] = None,
-    examples: Optional[list] = None,
-    forms: Optional[list] = None,
+    glosses: list | None = None,
+    examples: list | None = None,
+    forms: list | None = None,
 ) -> str:
     """Helper to create a valid wiktionary JSONL line."""
     entry = {
@@ -74,11 +72,7 @@ class TestExtractDefinition:
 
 class TestExtractExample:
     def test_from_dict_example(self):
-        sense = {
-            "examples": [
-                {"text": "पानी पियो", "translation": "Drink water"}
-            ]
-        }
+        sense = {"examples": [{"text": "पानी पियो", "translation": "Drink water"}]}
         result = _extract_example(sense)
         assert "पानी पियो" in result
         assert "Drink water" in result

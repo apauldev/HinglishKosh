@@ -26,9 +26,9 @@ def _normalize_hindi(word: str) -> str:
     """
     word = unicodedata.normalize("NFKD", word)
     # Remove nukta variants
-    word = word.replace("\u093C", "")  # nukta
+    word = word.replace("\u093c", "")  # nukta
     # Strip trailing virama
-    word = word.rstrip("\u094D")
+    word = word.rstrip("\u094d")
     return word.strip()
 
 
@@ -127,6 +127,8 @@ def deduplicate_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     logger.info(
         "Deduplication: %d entries → %d unique (merged %d duplicate definitions)",
-        len(entries), len(deduped), total_merged,
+        len(entries),
+        len(deduped),
+        total_merged,
     )
     return deduped

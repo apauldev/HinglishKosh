@@ -35,15 +35,19 @@ def cmd_lookup(args):
     results = []
 
     for entry in dictionary:
-        if (entry.get("word_hindi", "").lower() == query or
-            entry.get("word_hinglish_roman", "").lower() == query):
+        if (
+            entry.get("word_hindi", "").lower() == query
+            or entry.get("word_hinglish_roman", "").lower() == query
+        ):
             results.append(entry)
 
     if not results:
         # Fallback: partial match
         for entry in dictionary:
-            if (query in entry.get("word_hindi", "").lower() or
-                query in entry.get("word_hinglish_roman", "").lower()):
+            if (
+                query in entry.get("word_hindi", "").lower()
+                or query in entry.get("word_hinglish_roman", "").lower()
+            ):
                 results.append(entry)
 
     if args.safe:
@@ -53,14 +57,16 @@ def cmd_lookup(args):
         print(f"No results found for: {args.word}")
         return
 
-    for i, entry in enumerate(results[:args.limit], 1):
+    for i, entry in enumerate(results[: args.limit], 1):
         print(f"\n{'─' * 50}")
         print(f"  {i}. {entry.get('word_hindi', '')} ({entry.get('word_hinglish_roman', '')})")
         print(f"  POS: {entry.get('part_of_speech', 'N/A')}")
         print(f"  Definition: {entry.get('definition', 'N/A')}")
         if entry.get("example_sentence"):
             print(f"  Example: {entry['example_sentence']}")
-        print(f"  Source: {entry.get('source', 'N/A')} | Confidence: {entry.get('confidence_score', 0)}")
+        source = entry.get("source", "N/A")
+        confidence = entry.get("confidence_score", 0)
+        print(f"  Source: {source} | Confidence: {confidence}")
         if entry.get("toxicity_flags"):
             print(f"  Flags: {', '.join(entry['toxicity_flags'])}")
 
@@ -93,7 +99,7 @@ def cmd_search(args):
     if args.safe:
         results = [(s, e) for s, e in results if e.get("severity_score", 0) < 0.5]
 
-    results = results[:args.limit]
+    results = results[: args.limit]
 
     if not results:
         print(f"No results found for: {args.query}")
@@ -116,7 +122,7 @@ def cmd_stats(args):
     dictionary = data.get("dictionary", [])
 
     print(f"\n{'═' * 50}")
-    print(f"  HinglishKosh (हिंग्लिशकोश) — Dataset Statistics")
+    print("  HinglishKosh (हिंग्लिशकोश) — Dataset Statistics")
     print(f"{'═' * 50}")
     print(f"  Name:            {meta.get('name', 'N/A')}")
     print(f"  Version:         {meta.get('version', 'N/A')}")
@@ -126,13 +132,13 @@ def cmd_stats(args):
 
     source_counts = meta.get("source_counts", {})
     if source_counts:
-        print(f"\n  Sources:")
+        print("\n  Sources:")
         for src, count in source_counts.items():
             print(f"    {src}: {count:,}")
 
     pos_dist = meta.get("pos_distribution", {})
     if pos_dist:
-        print(f"\n  Part of Speech Distribution:")
+        print("\n  Part of Speech Distribution:")
         for pos, count in sorted(pos_dist.items(), key=lambda x: -x[1]):
             print(f"    {pos}: {count:,}")
 

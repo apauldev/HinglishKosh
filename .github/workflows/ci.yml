@@ -26,4 +26,10 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -e ".[dev]"
+      - name: Download data
+        run: |
+          mkdir -p data/raw/wordnet data/raw/wiktionary
+          bash scripts/download_data.sh
+      - name: Run pipeline
+        run: python -m src.processing.pipeline
       - run: pytest tests/ -v

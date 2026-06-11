@@ -2,7 +2,6 @@
 
 import csv
 import json
-from pathlib import Path
 
 from src.ingestion.supplemental_loader import load_supplemental
 

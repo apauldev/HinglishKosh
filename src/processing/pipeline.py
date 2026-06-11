@@ -10,8 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import sys
-from datetime import date, timezone
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +18,7 @@ from src.ingestion.supplemental_loader import load_supplemental
 from src.ingestion.wiktionary_loader import load_wiktionary
 from src.ingestion.wordnet_loader import load_english_hindi_linkage, load_wordnet
 from src.processing.merge import assign_ids, merge_dictionaries
-from src.processing.transliterate import iso_to_hinglish, transliterate, _COMMON_WORDS
+from src.processing.transliterate import _COMMON_WORDS, iso_to_hinglish, transliterate
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 def _has_devanagari(text: str) -> bool:
     """Check if text contains Devanagari characters."""
-    return any("\u0900" <= c <= "\u097F" for c in text)
+    return any("\u0900" <= c <= "\u097f" for c in text)
 
 
 def _ensure_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -83,9 +82,8 @@ def run_pipeline(
 
     # Load English-Hindi linkage
     linkage_file = wordnet_dir / "english-hindi-linked.tsv"
-    linkage = {}
     if linkage_file.exists():
-        linkage = load_english_hindi_linkage(linkage_file)
+        load_english_hindi_linkage(linkage_file)
 
     # === Stage 2: Load Wiktionary ===
     logger.info("=== Loading Wiktionary ===")
@@ -109,7 +107,6 @@ def run_pipeline(
 
     # === Stage 4: Merge ===
     logger.info("=== Merging Dictionaries ===")
-    all_entries = wordnet_entries + wiktionary_entries + supplemental_entries
     merged = merge_dictionaries(wordnet_entries, wiktionary_entries + supplemental_entries)
 
     # Fill in romanized forms
@@ -141,7 +138,9 @@ def run_pipeline(
             "pos_distribution": pos_counts,
             "license": "GPL-3.0",
             "creation_date": date.today().isoformat(),
-            "description": "A comprehensive Hinglish-English dictionary dataset for keyboards and apps.",
+            "description": (
+                "A comprehensive Hinglish-English dictionary dataset for keyboards and apps."
+            ),
         },
         "dictionary": merged,
     }
@@ -159,15 +158,16 @@ def run_pipeline(
     logger.info("Wrote compact JSON to %s", compact_file)
 
     # Print summary
-    print(f"\n{'='*60}")
-    print(f"  HinglishKosh (हिंग्लिशकोश) — Pipeline Complete")
-    print(f"{'='*60}")
+    print(f"\n{'=' * 60}")
+    print("  HinglishKosh (हिंग्लिशकोश) — Pipeline Complete")
+    print(f"{'=' * 60}")
     print(f"  Total entries:  {len(merged):,}")
     print(f"  WordNet:        {sources.get('WordNet', 0):,}")
     print(f"  Wiktionary:     {sources.get('Wiktionary', 0):,}")
-    print(f"  Supplemental:   {sum(v for k, v in sources.items() if k.startswith('supplemental')):,}")
+    supp_count = sum(v for k, v in sources.items() if k.startswith("supplemental"))
+    print(f"  Supplemental:   {supp_count:,}")
     print(f"  Output:         {output_file}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     return dataset["meta"]
 
