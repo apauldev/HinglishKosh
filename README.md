@@ -145,6 +145,38 @@ Both versions include `.min.json` compact variants for production use.
 
 Use the safe version for keyboard apps and public-facing tools. Use the full version for NLP research where completeness matters.
 
+## Android Keyboard Integration
+
+### Third-Party Keyboards
+
+HinglishKosh exports AOSP `.dict` files compatible with open-source Android keyboards:
+
+| Keyboard | Hinglish Support | Notes |
+|---|---|---|
+| [OpenBoard](https://github.com/openboard-team/openboard) | Via custom dictionary | Import `.dict` file in settings |
+| [HeliBoard](https://github.com/Helium314/HeliBoard) | Via custom dictionary | Fork of OpenBoard, actively maintained |
+| [FUTO Keyboard](https://github.com/futo-org/android-keyboard) | Native support | Privacy-focused, supports custom dictionaries |
+
+**Setup (OpenBoard/HeliBoard):**
+1. Download `hinglish.dict` from [Releases](https://github.com/apauldev/HinglishKosh/releases)
+2. Open keyboard settings → Dictionary → Import
+3. Select the `.dict` file
+4. Hinglish words will appear in suggestions
+
+### Planned: Hinglish+English Keyboard
+
+**Problem:** Currently, Indian users switch between 2-3 keyboards — English for coding/work, Hindi/Hinglish for chatting. This is friction.
+
+**Solution:** A single keyboard that handles:
+- English typing (QWERTY)
+- Hindi transliteration (type "namaste" → suggestions include "नमस्ते")
+- Hinglish mode (type "chai" → suggests "चाय")
+- Auto-detection based on context
+
+This would be the first keyboard built specifically for how Indians actually type — mixing English and Hindi naturally, without switching apps.
+
+**Status:** Planning phase. Contributions welcome for keyboard development.
+
 ## Architecture
 
 ```
