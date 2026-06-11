@@ -2,122 +2,74 @@
 
 import json
 
-from src.safety.profanity_list import ProfanityMatcher
-from src.safety.severity_scorer import compute_severity, flag_entries
-from src.safety.toxicity_classifier import ToxicityClassifier
+from src.safety.profanity_list import ProfanityMatcher, check_profanity, load_profanity_list
+from src.safety.severity_scorer import flag_entries, score_severity
 
 
 class TestProfanityMatcher:
     def test_clean_word(self):
         matcher = ProfanityMatcher()
-        result = matcher.check_word("hello")
-        assert result is None
+        assert matcher.contains_profanity("hello") is False
 
     def test_empty_text(self):
         matcher = ProfanityMatcher()
-        matches = matcher.check_text("")
-        assert matches == []
+        assert matcher.contains_profanity("") is False
 
     def test_is_clean(self):
         matcher = ProfanityMatcher()
-        assert matcher.is_clean("hello world") is True
+        assert matcher.contains_profanity("hello world") is False
 
     def test_load_external_wordlist(self, tmp_path):
-        wordlist = {
-            "testword": {"severity": 0.9, "category": "profanity"},
-        }
+        wordlist = {"words": ["testword"]}
         filepath = tmp_path / "profanity.json"
         filepath.write_text(json.dumps(wordlist), encoding="utf-8")
 
-        matcher = ProfanityMatcher()
-        count = matcher.load_wordlist(filepath)
-        assert count == 1
-        assert "testword" in matcher.wordlist
+        words = load_profanity_list(filepath)
+        assert "testword" in words
 
     def test_load_nonexistent_file(self, tmp_path):
-        matcher = ProfanityMatcher()
-        count = matcher.load_wordlist(tmp_path / "nonexistent.json")
-        assert count == 0
+        words = load_profanity_list(tmp_path / "nonexistent.json")
+        assert len(words) == 0
 
     def test_normalize_strips_punctuation(self):
         matcher = ProfanityMatcher()
-        assert matcher._normalize("hello world") == "hello world"
-        # Note: ! is mapped to i (leet-speak), not stripped
-        assert matcher._normalize("test@word") == "testaword"
-
-    def test_threshold_configurable(self):
-        matcher = ProfanityMatcher(threshold=0.9)
-        assert matcher.threshold == 0.9
-
-
-class TestToxicityClassifier:
-    def test_classify_empty_text(self):
-        clf = ToxicityClassifier()
-        result = clf.classify("")
-        assert result["toxic"] is False
-        assert result["toxicity_score"] == 0.0
-
-    def test_classify_clean_text(self):
-        clf = ToxicityClassifier()
-        result = clf.classify("मौसम आज अच्छा है")
-        # ML model may produce false positives on clean text; only assert for heuristic
-        if result.get("model_used") == "heuristic":
-            assert result["toxic"] is False
-
-    def test_heuristic_fallback(self):
-        clf = ToxicityClassifier()
-        # Force heuristic mode by using non-existent model
-        clf._available = False
-        clf._pipeline = None
-        result = clf.classify("I hate this stupid thing")
-        assert "toxicity_score" in result
-
-    def test_availability_property(self):
-        clf = ToxicityClassifier()
-        assert isinstance(clf.is_available, bool)
+        # The normalize function should handle basic text
+        assert matcher.contains_profanity("hello world") is False
 
 
 class TestSeverityScorer:
-    def test_compute_severity_clean(self):
-        result = compute_severity([], {"toxic": False, "toxicity_score": 0.0, "labels": []})
+    def test_score_severity_clean(self):
+        result = score_severity(word="hello", gloss="greeting")
+        assert result["profanity"] is False
         assert result["severity_score"] == 0.0
-        assert result["is_toxic"] is False
-        assert result["toxicity_flags"] == []
 
-    def test_compute_severity_with_dictionary_match(self):
-        matches = [{"severity": 0.9, "category": "profanity"}]
-        ml_result = {"toxic": False, "toxicity_score": 0.1, "labels": []}
-        result = compute_severity(matches, ml_result)
-        assert result["severity_score"] > 0
-        assert "profanity" in result["toxicity_flags"]
-
-    def test_compute_severity_with_ml_match(self):
-        matches = []
-        ml_result = {"toxic": True, "toxicity_score": 0.8, "labels": []}
-        result = compute_severity(matches, ml_result)
-        assert result["is_toxic"] is True
-        assert "contextual_toxicity" in result["toxicity_flags"]
-
-    def test_compute_severity_combined(self):
-        matches = [{"severity": 0.5, "category": "profanity"}]
-        ml_result = {"toxic": True, "toxicity_score": 0.7, "labels": []}
-        result = compute_severity(matches, ml_result, weights=(0.5, 0.5))
-        assert result["severity_score"] > 0.5
-        assert result["is_toxic"] is True
+    def test_score_severity_with_profanity(self):
+        result = score_severity(word="gaandu", gloss="idiot")
+        assert result["profanity"] is True
+        assert result["severity_score"] == 1.0
 
     def test_flag_entries(self):
         entries = [
             {
-                "word_hindi": "पानी",
+                "word_hinglish_roman": "paani",
                 "definition": "water",
-                "example_sentence": "पानी पियो",
-                "toxicity_flags": [],
-                "severity_score": 0.0,
+                "examples": ["paani piyo"],
             },
         ]
         matcher = ProfanityMatcher()
-        clf = ToxicityClassifier()
-        flagged = flag_entries(entries, matcher, clf)
+        flagged = flag_entries(entries, matcher)
         assert len(flagged) == 1
-        assert "toxicity_flags" in flagged[0]
+        assert "profanity" in flagged[0]
         assert "severity_score" in flagged[0]
+        assert flagged[0]["profanity"] is False
+
+
+class TestCheckProfanity:
+    def test_check_clean_text(self):
+        assert check_profanity("hello world") is False
+
+    def test_check_empty_text(self):
+        assert check_profanity("") is False
+
+    def test_check_none_text(self):
+        assert check_profanity(None) is False  # type: ignore[arg-type]

@@ -19,6 +19,8 @@ from src.ingestion.wiktionary_loader import load_wiktionary
 from src.ingestion.wordnet_loader import load_english_hindi_linkage, load_wordnet
 from src.processing.merge import assign_ids, merge_dictionaries
 from src.processing.transliterate import _COMMON_WORDS, iso_to_hinglish, transliterate
+from src.safety.profanity_list import ProfanityMatcher
+from src.safety.severity_scorer import flag_entries
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,6 +64,7 @@ def run_pipeline(
     data_dir: Path = Path("data/raw"),
     output_dir: Path = Path("data/output"),
     include_supplemental: bool = True,
+    skip_safety: bool = False,
 ) -> dict[str, Any]:
     """Run the full dictionary processing pipeline.
 
@@ -115,7 +118,21 @@ def run_pipeline(
     # Assign unified IDs
     merged = assign_ids(merged)
 
-    # === Stage 5: Output ===
+    # === Stage 5: Safety Filter ===
+    if not skip_safety:
+        logger.info("=== Running Safety Filter ===")
+        profanity_matcher = ProfanityMatcher()
+        logger.info(
+            "Safety filter ready (profanity: %s)",
+            "loaded" if profanity_matcher.wordlist else "empty",
+        )
+        merged = flag_entries(merged, profanity_matcher)
+        flagged_count = sum(1 for e in merged if e.get("severity_score", 0) >= 0.5)
+        logger.info("Safety filter complete: %d entries flagged", flagged_count)
+    else:
+        logger.info("=== Safety Filter Skipped ===")
+
+    # === Stage 6: Output ===
     logger.info("=== Generating Output ===")
 
     # Compute stats
@@ -127,12 +144,17 @@ def run_pipeline(
         pos = entry.get("part_of_speech", "unknown")
         pos_counts[pos] = pos_counts.get(pos, 0) + 1
 
-    # Build output
+    # Build safe dataset (filter toxic entries)
+    safe_entries = [e for e in merged if e.get("severity_score", 0) < 0.5]
+    excluded_entries = [e for e in merged if e.get("severity_score", 0) >= 0.5]
+
+    # Build full dataset
     dataset = {
         "meta": {
             "name": "HinglishKosh (हिंग्लिशकोश)",
             "version": "1.0.0",
             "total_entries": len(merged),
+            "safe_entries": len(safe_entries),
             "sources": list(sources.keys()),
             "source_counts": sources,
             "pos_distribution": pos_counts,
@@ -145,28 +167,80 @@ def run_pipeline(
         "dictionary": merged,
     }
 
-    # Write JSON
+    # Build safe dataset
+    safe_dataset = {
+        "meta": {
+            "name": "HinglishKosh Safe (हिंग्लिशकोश सुरक्षित)",
+            "version": "1.0.0",
+            "total_entries": len(safe_entries),
+            "description": (
+                "Safe version of HinglishKosh — toxic entries filtered out (severity_score < 0.5)."
+            ),
+            **{k: v for k, v in dataset["meta"].items() if k not in ("name", "total_entries")},
+        },
+        "dictionary": safe_entries,
+    }
+
+    # Write full JSON
     output_file = output_dir / "hinglish_dictionary_v1.json"
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(dataset, f, ensure_ascii=False, indent=2)
     logger.info("Wrote %d entries to %s", len(merged), output_file)
 
-    # Write compact JSON (for production)
+    # Write full compact JSON
     compact_file = output_dir / "hinglish_dictionary_v1.min.json"
     with open(compact_file, "w", encoding="utf-8") as f:
         json.dump(dataset, f, ensure_ascii=False, separators=(",", ":"))
     logger.info("Wrote compact JSON to %s", compact_file)
+
+    # Write safe JSON
+    safe_file = output_dir / "hinglish_dictionary_v1_safe.json"
+    with open(safe_file, "w", encoding="utf-8") as f:
+        json.dump(safe_dataset, f, ensure_ascii=False, indent=2)
+    logger.info("Wrote %d safe entries to %s", len(safe_entries), safe_file)
+
+    # Write safe compact JSON
+    safe_compact_file = output_dir / "hinglish_dictionary_v1_safe.min.json"
+    with open(safe_compact_file, "w", encoding="utf-8") as f:
+        json.dump(safe_dataset, f, ensure_ascii=False, separators=(",", ":"))
+    logger.info("Wrote safe compact JSON to %s", safe_compact_file)
+
+    # Write excluded words list
+    exclude_file = output_dir / "hinglish_dictionary_v1_excluded.json"
+    excluded_words = [
+        {
+            "word_hindi": e.get("word_hindi", ""),
+            "word_hinglish_roman": e.get("word_hinglish_roman", ""),
+            "definition": e.get("definition", ""),
+            "severity_score": e.get("severity_score", 0),
+            "toxicity_flags": e.get("toxicity_flags", []),
+            "source": e.get("source", ""),
+        }
+        for e in excluded_entries
+    ]
+    with open(exclude_file, "w", encoding="utf-8") as f:
+        json.dump(
+            {"meta": {"total_excluded": len(excluded_words)}, "excluded": excluded_words},
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
+    logger.info("Wrote %d excluded entries to %s", len(excluded_words), exclude_file)
 
     # Print summary
     print(f"\n{'=' * 60}")
     print("  HinglishKosh (हिंग्लिशकोश) — Pipeline Complete")
     print(f"{'=' * 60}")
     print(f"  Total entries:  {len(merged):,}")
+    print(f"  Safe entries:   {len(safe_entries):,} (severity < 0.5)")
+    print(f"  Excluded:       {len(excluded_words):,} (severity >= 0.5)")
     print(f"  WordNet:        {sources.get('WordNet', 0):,}")
     print(f"  Wiktionary:     {sources.get('Wiktionary', 0):,}")
     supp_count = sum(v for k, v in sources.items() if k.startswith("supplemental"))
     print(f"  Supplemental:   {supp_count:,}")
     print(f"  Output:         {output_file}")
+    print(f"  Safe output:    {safe_file}")
+    print(f"  Excluded:       {exclude_file}")
     print(f"{'=' * 60}\n")
 
     return dataset["meta"]
@@ -177,12 +251,14 @@ def main():
     parser.add_argument("--data-dir", type=Path, default=Path("data/raw"))
     parser.add_argument("--output-dir", type=Path, default=Path("data/output"))
     parser.add_argument("--no-supplemental", action="store_true")
+    parser.add_argument("--skip-safety", action="store_true", help="Skip safety filter")
     args = parser.parse_args()
 
     run_pipeline(
         data_dir=args.data_dir,
         output_dir=args.output_dir,
         include_supplemental=not args.no_supplemental,
+        skip_safety=args.skip_safety,
     )
 
 
