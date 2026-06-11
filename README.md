@@ -223,6 +223,8 @@ python -m pytest tests/test_lookup.py -v       # Lookup accuracy
 python -m pytest tests/test_api.py -v          # REST API
 ```
 
+**Note:** Random quality checks (`test_random_50_quality`) are skipped rather than failed to avoid flaky CI due to random sampling.
+
 ## Contributing
 
 Contributions welcome! Here's how:
