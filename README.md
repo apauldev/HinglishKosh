@@ -257,6 +257,29 @@ Contributions welcome! Here's how:
 - Integration with more keyboard apps
 - Documentation and examples
 
+## Releasing
+
+Releases are automated via GitHub Actions. When you push a `v*` tag, CI downloads data, runs the pipeline, and creates a GitHub Release with the dataset files.
+
+```bash
+# Install bump2version (one-time)
+pip install bump2version
+
+# Bump version (updates pyproject.toml + src/__init__.py, commits, tags)
+bump2version patch   # 1.0.0 → 1.0.1 (bug fixes)
+bump2version minor   # 1.0.0 → 1.1.0 (new features)
+bump2version major   # 1.0.0 → 2.0.0 (breaking changes)
+
+# Push commit + tag to trigger release
+git push && git push --tags
+```
+
+The release workflow:
+1. Downloads raw data sources (cached for speed)
+2. Runs the full pipeline
+3. Generates SHA256 checksums
+4. Creates a GitHub Release with all 4 JSON variants
+
 ## License
 
 This project is licensed under the **GNU General Public License v3.0** — see the [LICENSE](LICENSE) file for details.
