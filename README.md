@@ -1,38 +1,30 @@
-# HinglishKosh (हिंग्लिशकोश)
+# HinglishKosh
 
-A comprehensive, open-source Hinglish-English dictionary dataset for keyboards, apps, and NLP research.
+> A comprehensive, open-source Hinglish-English dictionary dataset for keyboards, apps, and NLP research.
 
-## Why?
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/badge/tests-701%20passed-brightgreen)](tests/)
+[![Dataset](https://img.shields.io/badge/dataset-209K%20entries-orange)](#dataset)
 
-Hinglish — the natural blend of Hindi and English — is how millions communicate daily, yet no open dictionary exists for it. HinglishKosh fills that gap: **100,000+ entries** sourced from WordNet, Wiktionary, and curated datasets, structured for integration into open-source keyboards like OpenBoard, HeliBoard, and FUTO Keyboard.
+---
 
-## What's Inside
+## Why HinglishKosh?
 
-| Component | Description |
-|---|---|
-| **Full Dataset** | Complete dictionary with definitions, examples, POS tags, and synset linkages |
-| **Safe Dataset** | Filtered variant with profanity and toxic content flagged/removed |
-| **REST API** | FastAPI server with phonetic search and safe-mode toggle |
-| **Keyboard Formats** | Pre-built `.dict` files for AOSP-based keyboards |
-| **CLI Tool** | `hinglish-dict lookup <word>` for quick lookups |
+Hinglish — the natural blend of Hindi and English — is how **over 600 million people** communicate daily across India. Yet no open dictionary exists for it.
 
-## Dataset Schema
+HinglishKosh fills that gap: **200,000+ entries** sourced from WordNet and Wiktionary, with informal Hinglish romanization (no diacritics) — exactly how Indians actually write on WhatsApp, social media, and keyboards.
 
-```json
-{
-  "id": "HIN-00001",
-  "word_hindi": "नमस्ते",
-  "word_hinglish_roman": "namaste",
-  "definition": "A respectful greeting or salutation in Hindi.",
-  "part_of_speech": "interjection",
-  "example_sentence": "नमस्ते, आप कैसे हैं? (Namaste, aap kaise hain?)",
-  "synsets": ["hi-interjection-001"],
-  "source": "WordNet",
-  "confidence_score": 0.95,
-  "toxicity_flags": [],
-  "severity_score": 0.0
-}
-```
+## Features
+
+- **209,462 entries** from WordNet (153K) and Wiktionary (56K)
+- **Informal Hinglish romanization** — `chai` not `cāy`, `aag` not `āg`, `hawa` not `havā`
+- **REST API** with phonetic search and safe-mode filtering
+- **AOSP keyboard export** — ready for OpenBoard, HeliBoard, FUTO Keyboard
+- **SQLite FTS5** for fast offline search
+- **CLI tool** for quick lookups
+- **Safety filter** — profanity detection and toxicity scoring
+- **701 tests passing** — including 588 common word romanization tests
 
 ## Quick Start
 
@@ -48,36 +40,224 @@ python -m src.processing.pipeline
 
 # Look up a word
 hinglish-dict lookup namaste
+hinglish-dict search chai
+hinglish-dict stats
 ```
+
+## Usage
+
+### As a CLI Tool
+
+```bash
+# Lookup a word
+hinglish-dict lookup पानी
+# → paani: water (noun)
+
+# Search by romanization
+hinglish-dict search chai
+# → चाय (chai): tea
+
+# Show dataset stats
+hinglish-dict stats
+# → Total entries: 209,462
+```
+
+### As a REST API
+
+```bash
+# Start the server
+uvicorn src.api.main:app --reload
+
+# Lookup endpoint
+curl "http://localhost:8000/lookup?word=नमस्ते"
+# → {"word_hindi": "नमस्ते", "word_hinglish_roman": "namaste", ...}
+
+# Search endpoint
+curl "http://localhost:8000/search?q=chai&limit=10"
+
+# Stats endpoint
+curl "http://localhost:8000/stats"
+```
+
+### As a Python Library
+
+```python
+import json
+
+with open("data/output/hinglish_dictionary_v1.json") as f:
+    data = json.load(f)
+
+# Build a lookup index
+index = {entry["word_hindi"]: entry for entry in data["dictionary"]}
+
+# Look up a word
+entry = index.get("पानी")
+print(entry["word_hinglish_roman"])  # → paani
+print(entry["definition"])          # → water
+```
+
+## Dataset Schema
+
+Each entry in the dictionary follows this schema:
+
+```json
+{
+  "id": "WN-12345",
+  "word_hindi": "पानी",
+  "word_hinglish_roman": "paani",
+  "definition": "water",
+  "part_of_speech": "noun",
+  "example_sentence": "पानी पिओ (paani piyo)",
+  "all_examples": ["पानी पिओ"],
+  "synsets": ["iwn-12345"],
+  "head_word": "पानी",
+  "source": "WordNet",
+  "confidence_score": 1.0,
+  "toxicity_flags": [],
+  "severity_score": 0.0
+}
+```
+
+### Key Fields
+
+| Field | Description |
+|---|---|
+| `word_hindi` | Devanagari script form |
+| `word_hinglish_roman` | Informal Hinglish romanization (no diacritics) |
+| `definition` | English definition |
+| `part_of_speech` | noun, verb, adjective, etc. |
+| `source` | WordNet or Wiktionary |
+| `confidence_score` | 1.0 (WordNet) or 0.85 (Wiktionary) |
+| `toxicity_flags` | List of detected content flags |
+| `severity_score` | 0.0 (safe) to 1.0 (toxic) |
 
 ## Architecture
 
 ```
-Data Sources          Processing           Output
-─────────────         ──────────           ──────
-Hindi WordNet    ──►  Parse & Normalize ──► Full Dataset (JSON/CSV)
-Wiktionary       ──►  Merge & Dedup    ──► Safe Dataset (filtered)
-Supplemental     ──►  RAG Expand       ──► Keyboard (.dict)
-Profanity Lists  ──►  Toxicity Filter  ──► SQLite FTS DB
-                                         REST API
+┌─────────────────────────────────────────────────────────────┐
+│                      Data Sources                          │
+├─────────────────┬─────────────────┬─────────────────────────┤
+│  Hindi WordNet  │   Wiktionary    │    Supplemental         │
+│  (IIT Bombay)   │  (kaikki.org)   │    (Custom lists)       │
+└────────┬────────┴────────┬────────┴────────────┬────────────┘
+         │                 │                     │
+         ▼                 ▼                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Processing Pipeline                       │
+├─────────────────┬─────────────────┬─────────────────────────┤
+│   Parse &       │  Transliterate  │   Merge &               │
+│   Normalize     │  (ISO → Hinglish)│   Deduplicate          │
+└─────────────────┴─────────────────┴─────────────────────────┘
+         │                 │                     │
+         ▼                 ▼                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     Safety Filter                           │
+├─────────────────┬─────────────────┬─────────────────────────┤
+│  Profanity      │   Toxicity      │   Severity              │
+│  Detection      │   Classifier    │   Scorer                │
+└─────────────────┴─────────────────┴─────────────────────────┘
+         │                 │                     │
+         ▼                 ▼                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       Output                                │
+├─────────────────┬─────────────────┬─────────────────────────┤
+│  Full Dataset   │  AOSP .dict     │   REST API              │
+│  (JSON/CSV)     │  (Keyboards)    │   SQLite FTS5           │
+└─────────────────┴─────────────────┴─────────────────────────┘
 ```
 
 ## Data Sources
 
-| Source | License | Contribution |
+| Source | License | Entries | Description |
+|---|---|---|---|
+| [Hindi WordNet](https://www.cfilt.iitb.ac.in/wordnet/) | GPL 3.0 | 153,204 | Core curated entries with synset linkages |
+| [Wiktionary](https://kaikki.org) | CC BY-SA 4.0 | 56,258 | Extended coverage with etymologies |
+| IndoWordNet-English | Apache 2.0 | — | Synset linkage mapping |
+
+### Transliteration
+
+The pipeline converts ISO 15919 romanization to informal Hinglish:
+
+| ISO 15919 | Hinglish | Notes |
 |---|---|---|
-| Hindi WordNet (IIT Bombay) | GPL 3.0 | Core curated entries |
-| IndoWordNet-English Linked | Apache-compatible | Synset linkages |
-| Wiktionary (kaikki.org) | CC BY-SA | Extended coverage |
-| GoVarnam / IndicTrans | AGPL 3.0 / GPL | Transliteration |
+| `cāy` | `chai` | `c` → `ch`, `ā` → `a` |
+| `āg` | `aag` | Long vowel preserved |
+| `havā` | `hawa` | `v` → `w` |
+| `pānī` | `paani` | Trailing `ī` → `i` |
+| `dādā` | `dada` | Repeated vowels collapsed |
 
-## License
+## Project Structure
 
-GPL 3.0 — compatible with all upstream data sources. See [LICENSE](LICENSE) for details.
+```
+hinglish-dict/
+├── src/
+│   ├── ingestion/          # Data loaders (WordNet, Wiktionary, Supplemental)
+│   ├── processing/         # Pipeline, merge, transliteration
+│   ├── safety/             # Profanity, toxicity, severity scoring
+│   ├── api/                # FastAPI REST server
+│   ├── integration/        # AOSP dict export, SQLite FTS5
+│   └── cli.py              # Command-line interface
+├── tests/                  # 701 tests (unit + integration)
+├── scripts/
+│   ├── download_data.sh    # Download data sources
+│   ├── release.sh          # Create GitHub release
+│   └── upload_hf.sh        # Upload to Hugging Face
+├── data/
+│   ├── raw/                # Downloaded source data (gitignored)
+│   ├── processed/          # Intermediate processing (gitignored)
+│   └── output/             # Final dataset (gitignored, in releases)
+├── PLAN.md                 # Implementation plan
+├── pyproject.toml          # Python project config
+└── README.md               # This file
+```
+
+## Testing
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run specific test suite
+python -m pytest tests/test_1000_words.py -v  # Common word romanization
+python -m pytest tests/test_lookup.py -v       # Lookup accuracy
+python -m pytest tests/test_api.py -v          # REST API
+```
 
 ## Contributing
 
-Contributions welcome! Whether it's new words, bug fixes, or integration help — open a PR or issue.
+Contributions welcome! Here's how:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Areas for Contribution
+
+- Adding more entries from additional sources
+- Improving romanization accuracy
+- Expanding the safety filter
+- Integration with more keyboard apps
+- Documentation and examples
+
+## License
+
+This project is licensed under the **GNU General Public License v3.0** — see the [LICENSE](LICENSE) file for details.
+
+### Data Source Licenses
+
+| Source | License | Compatibility |
+|---|---|---|
+| Hindi WordNet (IIT Bombay) | GPL 3.0 | ✅ Compatible |
+| Wiktionary | CC BY-SA 4.0 | ✅ Compatible (GPLv3) |
+| IndoWordNet-English | Apache 2.0 | ✅ Compatible |
+
+## Acknowledgments
+
+- [IIT Bombay](https://www.cfilt.iitb.ac.in/) for Hindi WordNet
+- [Wiktionary contributors](https://kaikki.org) for the Hindi dictionary data
+- The open-source keyboard community (OpenBoard, HeliBoard, FUTO)
 
 ---
 
