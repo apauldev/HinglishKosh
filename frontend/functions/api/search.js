@@ -18,7 +18,7 @@ export async function onRequest(context) {
     const query = q.trim().replace(/[^\w\s]/g, '').split(/\s+/).map(t => t + '*').join(' ');
 
     try {
-        const results = await db.prepare(`
+        const results = db.prepare(`
             SELECT e.*, rank
             FROM entries_fts f
             JOIN entries e ON e.rowid = f.rowid
@@ -41,7 +41,7 @@ export async function onRequest(context) {
     } catch (err) {
         // Fallback: LIKE search if FTS fails (e.g., on short queries)
         const like = `%${q.trim()}%`;
-        const fallback = await db.prepare(`
+        const fallback = db.prepare(`
             SELECT * FROM entries
             WHERE word_hindi LIKE ? OR word_hinglish_roman LIKE ? OR definition LIKE ?
             LIMIT ?

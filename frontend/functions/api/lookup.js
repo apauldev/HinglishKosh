@@ -15,7 +15,7 @@ export async function onRequest(context) {
     const db = getDb(env);
 
     // Exact match first
-    const exact = await db.prepare(`
+    const exact = db.prepare(`
         SELECT * FROM entries
         WHERE word_hindi = ? OR word_hinglish_roman = ?
         LIMIT ?
@@ -26,7 +26,7 @@ export async function onRequest(context) {
     // Fallback: fuzzy/LIKE search
     if (results.length === 0) {
         const like = `%${word}%`;
-        const fuzzy = await db.prepare(`
+        const fuzzy = db.prepare(`
             SELECT * FROM entries
             WHERE word_hindi LIKE ? OR word_hinglish_roman LIKE ?
             LIMIT ?

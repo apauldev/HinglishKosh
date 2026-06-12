@@ -16,7 +16,7 @@ export async function onRequest(context) {
     const query = q.trim();
 
     // Try exact prefix match on roman first, then hindi
-    const results = await db.prepare(`
+    const results = db.prepare(`
         SELECT word_hindi, word_hinglish_roman
         FROM entries
         WHERE word_hinglish_roman LIKE ? OR word_hindi LIKE ?
