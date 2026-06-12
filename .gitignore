@@ -36,3 +36,11 @@ models/
 .env
 *.key
 .commandcode/taste/taste.md
+
+# Cloudflare / frontend
+frontend/*.db
+frontend/.wrangler/
+frontend/node_modules/
+frontend/public/assets/
+frontend/.seed_*.sql
+

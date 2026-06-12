@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — HinglishKosh</title>
+<meta name="description" content="About HinglishKosh — the open Hinglish-English dictionary project.">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a href="/" class="logo">हिंग्लिशकोश</a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/about">About</a>
+    </nav>
+  </div>
+  <div class="search-bar container">
+    <form action="/search" method="get" role="search" id="search-form">
+      <input
+        type="search"
+        name="q"
+        id="search-input"
+        placeholder="Search HinglishKosh..."
+        autocomplete="off"
+        aria-label="Search the dictionary"
+      >
+      <button type="submit">Search</button>
+    </form>
+    <div id="suggestions" class="suggestions" hidden></div>
+  </div>
+</header>
+
+<main class="container about-page">
+  <h1>About HinglishKosh</h1>
+
+  <section>
+    <h2>What is Hinglish?</h2>
+    <p>Hinglish is the code-mixed blend of Hindi and English widely spoken and written across India. It uses the Roman script without diacritics — "chai" instead of "cāy", "namaste" instead of "namastē". Over 600 million people communicate this way daily, making it one of the most widely used language varieties in the world.</p>
+  </section>
+
+  <section>
+    <h2>The Problem</h2>
+    <p>Despite its scale, Hinglish has no standardized dictionary. Academic resources use ISO 15919 transliteration with diacritics, which doesn't match how people actually type on phones. Commercial keyboards keep their dictionaries proprietary. Open-source keyboards lack adequate Hindi/Hinglish support.</p>
+  </section>
+
+  <section>
+    <h2>The Solution</h2>
+    <p>HinglishKosh is a 209,462-entry Hinglish-English dictionary that maps Devanagari headwords to their informal romanized spellings. It's built from two authoritative sources:</p>
+    <ul>
+      <li><strong>Hindi WordNet</strong> (IIT Bombay) — 153,204 core entries with synset linkages</li>
+      <li><strong>Wiktionary</strong> (kaikki.org) — 56,258 extended entries</li>
+    </ul>
+    <p>The dataset is processed through a pipeline that normalizes, transliterates, merges, deduplicates, and safety-filters every entry.</p>
+  </section>
+
+  <section>
+    <h2>Data Sources &amp; Licenses</h2>
+    <table>
+      <tr><th>Source</th><th>License</th></tr>
+      <tr><td>Hindi WordNet (IIT Bombay)</td><td>GPL 3.0</td></tr>
+      <tr><td>Wiktionary (kaikki.org)</td><td>CC BY-SA 4.0</td></tr>
+      <tr><td>Project code</td><td>GPL 3.0</td></tr>
+      <tr><td>Output dataset</td><td>GPL 3.0</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Technical Stack</h2>
+    <p>This website is built with:</p>
+    <ul>
+      <li><strong>Python</strong> — data pipeline (ingestion, transliteration, merge, safety filter)</li>
+      <li><strong>SQLite / D1</strong> — full-text search database with FTS5</li>
+      <li><strong>Cloudflare Pages + D1</strong> — serverless hosting with edge functions</li>
+    </ul>
+    <p>The full source code is <a href="https://github.com/apauldev/HinglishKosh">available on GitHub</a>.</p>
+  </section>
+
+  <section>
+    <h2>Usage</h2>
+    <p>Use the search bar above to look up any word. You can search by Devanagari (पानी), Hinglish romanization (paani), or English definition (water). Each word page shows the definition, part of speech, example sentences, and related words.</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>HinglishKosh (हिंग्लिशकोश) — <a href="https://github.com/apauldev/HinglishKosh">Open source</a> Hinglish-English dictionary. Licensed under GPL v3.</p>
+  </div>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>

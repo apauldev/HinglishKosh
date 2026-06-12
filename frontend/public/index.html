@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HinglishKosh (हिंग्लिशकोश) — The Open Hinglish Dictionary</title>
+<meta name="description" content="A comprehensive open-source Hinglish-English dictionary with 209,462 entries. Search Hindi words, English definitions, and Hinglish romanizations.">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a href="/" class="logo">हिंग्लिशकोश</a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/about">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="container">
+      <h1 class="hero-title"><span class="devanagari">हिंग्लिशकोश</span> <span class="subtitle">HinglishKosh</span></h1>
+      <p class="hero-tagline">The Open Hinglish Dictionary — 209,462 entries. Free. Open source.</p>
+
+      <div class="hero-search">
+        <form action="/search" method="get" role="search" id="search-form">
+          <input
+            type="search"
+            name="q"
+            id="search-input"
+            placeholder="Search... (e.g., paani, chai, नमस्ते)"
+            autocomplete="off"
+            aria-label="Search the dictionary"
+            autofocus
+          >
+          <button type="submit">Search</button>
+        </form>
+        <div id="suggestions" class="suggestions" hidden></div>
+      </div>
+
+      <div class="hero-examples">
+        <a href="/word/namaste" class="example-chip">नमस्ते (namaste)</a>
+        <a href="/word/paani" class="example-chip">पानी (paani)</a>
+        <a href="/word/chai" class="example-chip">चाय (chai)</a>
+        <a href="/word/pyaar" class="example-chip">प्यार (pyaar)</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="why-section">
+    <div class="container">
+      <h2>Why HinglishKosh?</h2>
+
+      <p>Over <strong>600 million people</strong> in India communicate daily in Hinglish — a natural blend of Hindi and English written in the Roman script. It's how you text your friends, type on WhatsApp, and scroll through social media.</p>
+
+      <p>Yet before this, there was no open dictionary for it.</p>
+
+      <p>Academic resources use ISO 15919 transliteration (<em>cāy</em>, <em>pānī</em>) — accurate but nobody types that way. Commercial keyboards keep their dictionaries closed. So when your phone suggests the wrong spelling as you type, you're out of luck.</p>
+
+      <p><strong>HinglishKosh fixes that.</strong></p>
+    </div>
+  </section>
+
+  <section class="features-section">
+    <div class="container">
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>209,462 entries</h3>
+          <p>Sourced from Hindi WordNet (IIT Bombay) and Wiktionary. Every entry has a Devanagari headword, informal romanization, and English definition.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Informal romanization</h3>
+          <p>चाय → <em>chai</em>, not <em>cāy</em>. पानी → <em>paani</em>, not <em>pānī</em>. We romanize the way Indians actually type.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Related words</h3>
+          <p>Each entry shows synonyms, broader terms, and narrower terms — built from WordNet's 40,000+ synset hierarchy.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Safe mode</h3>
+          <p>90 toxic entries filtered out. The safe subset is ready for keyboards, education tools, and public-facing apps.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Open source</h3>
+          <p>GPL v3. Use it in your app, keyboard, or research. <a href="https://github.com/apauldev/HinglishKosh">Fork it on GitHub</a>.</p>
+        </div>
+        <div class="feature-card">
+          <h3>API &amp; CLI</h3>
+          <p>This website is one interface. There's also a <a href="https://github.com/apauldev/HinglishKosh">REST API</a> and command-line tool.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>HinglishKosh (हिंग्लिशकोश) — <a href="https://github.com/apauldev/HinglishKosh">Open source</a> Hinglish-English dictionary. Licensed under GPL v3.</p>
+  </div>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>
