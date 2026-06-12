@@ -63,8 +63,9 @@ def seed_database(
             id, word_hindi, word_hinglish_roman, definition,
             part_of_speech, example_sentence, source,
             confidence_score, severity_score, toxicity_flags,
-            synonyms, antonyms, tags, head_word
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            synonyms, antonyms, tags, head_word,
+            definition_en, definition_hinglish
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
     insert_related_sql = """
@@ -93,6 +94,8 @@ def seed_database(
             list_to_csv(entry.get("antonyms", [])),
             list_to_csv(entry.get("tags", [])),
             entry.get("head_word", ""),
+            entry.get("definition_en", ""),
+            entry.get("definition_hinglish", ""),
         ))
 
         # Collect related words
