@@ -1,21 +1,21 @@
 export async function onRequest(context) {
     const { env } = context;
-    const hasDb = typeof env.DB !== 'undefined';
-    let dbResult = null;
+    let result = null;
+    let result2 = null;
     let error = null;
     try {
-        if (hasDb) {
-            dbResult = env.DB.prepare('SELECT COUNT(*) as count FROM entries').first();
-        }
+        const r = env.DB.prepare('SELECT COUNT(*) as count FROM entries').all();
+        result = r;
+        const r2 = env.DB.prepare('SELECT COUNT(*) as count FROM entries').first();
+        result2 = r2;
     } catch (e) {
-        error = e.message;
+        error = e.message + ' | ' + e.stack;
     }
     return new Response(JSON.stringify({
-        hasDb,
-        dbType: typeof env.DB,
-        dbResult,
+        result,
+        result2,
         error,
-        env: Object.keys(env).join(', '),
+        keys: result ? Object.keys(result) : null,
     }), {
         headers: { 'Content-Type': 'application/json' },
     });
