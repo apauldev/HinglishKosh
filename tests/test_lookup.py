@@ -77,9 +77,7 @@ class TestHindiToHinglishLookup:
         entry = lookup[hindi]
         # Verify the entry has a definition (Hindi or English)
         definition = entry.get("definition", "")
-        assert len(definition) > 0, (
-            f"'{hindi}' has empty definition"
-        )
+        assert len(definition) > 0, f"'{hindi}' has empty definition"
 
     @pytest.mark.parametrize(
         "hindi,expected_roman",
