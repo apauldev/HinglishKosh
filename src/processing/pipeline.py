@@ -18,7 +18,12 @@ from src.ingestion.supplemental_loader import load_supplemental
 from src.ingestion.wiktionary_loader import load_wiktionary
 from src.ingestion.wordnet_loader import load_english_hindi_linkage, load_wordnet
 from src.processing.merge import assign_ids, merge_dictionaries
-from src.processing.transliterate import _COMMON_WORDS, iso_to_hinglish, transliterate
+from src.processing.transliterate import (
+    _COMMON_WORDS,
+    iso_to_hinglish,
+    transliterate,
+    transliterate_rule_based,
+)
 from src.safety.profanity_list import ProfanityMatcher
 from src.safety.severity_scorer import flag_entries
 
@@ -37,9 +42,10 @@ def _has_devanagari(text: str) -> bool:
 def _ensure_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Convert all romanized forms to informal Hinglish.
 
-    - First check _COMMON_WORDS for the Devanagari word
-    - Then convert ISO 15919 to informal Hinglish
-    - Or transliterate from Devanagari
+    Priority:
+    1. _COMMON_WORDS lookup for the Devanagari word
+    2. Transliterate from Devanagari (always preferred over existing roman)
+    3. Convert existing roman (ISO 15919) to Hinglish as fallback
     """
     for entry in entries:
         hindi = entry.get("word_hindi", "")
@@ -48,15 +54,41 @@ def _ensure_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         # First, check if we have a known romanization for this Devanagari word
         if hindi and hindi in _COMMON_WORDS:
             entry["word_hinglish_roman"] = _COMMON_WORDS[hindi]
-        elif roman and not _has_devanagari(roman):
-            # Already romanized (likely ISO 15919 from Wiktionary) → convert to Hinglish
-            entry["word_hinglish_roman"] = iso_to_hinglish(roman)
         elif hindi:
-            # Devanagari or missing roman → transliterate from Hindi
+            # Always prefer transliterating from Devanagari
             entry["word_hinglish_roman"] = transliterate(hindi)
+        elif roman and not _has_devanagari(roman):
+            # No Hindi word, but has roman → convert ISO to Hinglish
+            entry["word_hinglish_roman"] = iso_to_hinglish(roman)
         elif roman:
             # Has Devanagari in roman field → transliterate
             entry["word_hinglish_roman"] = transliterate(roman)
+    return entries
+
+
+def _transliterate_definitions(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Transliterate Hindi definitions and example sentences to Hinglish.
+
+    Adds definition_hinglish field with romanized version of the Hindi definition.
+    """
+    for entry in entries:
+        definition = entry.get("definition", "")
+        example = entry.get("example_sentence", "")
+
+        # Transliterate definition if it contains Devanagari
+        if definition and _has_devanagari(definition):
+            entry["definition_hinglish"] = transliterate_rule_based(definition)
+        elif definition:
+            # Already romanized - use as-is or convert from ISO
+            if _has_devanagari(definition):
+                entry["definition_hinglish"] = definition
+            else:
+                entry["definition_hinglish"] = iso_to_hinglish(definition)
+
+        # Transliterate example sentence if it contains Devanagari
+        if example and _has_devanagari(example):
+            entry["example_hinglish"] = transliterate_rule_based(example)
+
     return entries
 
 
@@ -114,6 +146,10 @@ def run_pipeline(
 
     # Fill in romanized forms
     merged = _ensure_roman(merged)
+
+    # Transliterate definitions and examples
+    logger.info("=== Transliterating Definitions ===")
+    merged = _transliterate_definitions(merged)
 
     # Assign unified IDs
     merged = assign_ids(merged)

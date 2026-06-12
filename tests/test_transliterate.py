@@ -1,6 +1,10 @@
 """Tests for the transliteration module."""
 
-from src.processing.transliterate import transliterate, transliterate_rule_based
+from src.processing.transliterate import (
+    iso_to_hinglish,
+    transliterate,
+    transliterate_rule_based,
+)
 
 
 class TestTransliterateRuleBased:
@@ -28,6 +32,16 @@ class TestTransliterateRuleBased:
         result = transliterate_rule_based("नमस्ते!")
         assert "!" in result
 
+    def test_schwa_handling(self):
+        assert transliterate_rule_based("घर") == "ghar"
+        assert transliterate_rule_based("चल") == "chal"
+        assert transliterate_rule_based("किताब") == "kitab"
+
+    def test_common_conjuncts(self):
+        assert transliterate_rule_based("खड़े") == "khade"
+        assert transliterate_rule_based("ज्ञान") == "gyaan"
+        assert transliterate_rule_based("शिक्षा") == "shiksha"
+
 
 class TestTransliterate:
     def test_rule_based_method(self):
@@ -40,3 +54,10 @@ class TestTransliterate:
 
     def test_empty_input(self):
         assert transliterate("") == ""
+
+
+class TestIsoToHinglish:
+    def test_common_iso_forms(self):
+        assert iso_to_hinglish("pānī") == "paani"
+        assert iso_to_hinglish("mahīna") == "mahina"
+        assert iso_to_hinglish("zindagī") == "zindagi"
