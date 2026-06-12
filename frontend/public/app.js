@@ -1,129 +1,164 @@
-// HinglishKosh frontend JS — autocomplete + search enhancements
-
+// HinglishKosh — Theme toggle + autocomplete
 (function () {
-    'use strict';
+  'use strict';
 
-    const searchInput = document.getElementById('search-input');
-    const suggestionsEl = document.getElementById('suggestions');
-    let suggestionIndex = -1;
-    let suggestionData = [];
-    let debounceTimer = null;
+  // ─── Theme ───
 
-    if (!searchInput || !suggestionsEl) return;
+  const htmlEl = document.documentElement;
+  const toggleBtn = document.getElementById('theme-toggle');
+  const STORAGE_KEY = 'hinglishkosh-theme';
 
-    // ─── Autocomplete ───
+  function getPreferredTheme() {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
 
-    searchInput.addEventListener('input', function () {
-        const q = this.value.trim();
-        clearTimeout(debounceTimer);
+  function getSavedTheme() {
+    return localStorage.getItem(STORAGE_KEY);
+  }
 
-        if (q.length < 1) {
-            hideSuggestions();
-            return;
-        }
+  function applyTheme(theme) {
+    const isDark = theme === 'dark';
+    htmlEl.classList.toggle('dark', isDark);
+    localStorage.setItem(STORAGE_KEY, theme);
+  }
 
-        debounceTimer = setTimeout(() => fetchSuggestions(q), 150);
+  function initTheme() {
+    const saved = getSavedTheme();
+    const theme = saved || getPreferredTheme();
+    applyTheme(theme);
+  }
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const isDark = htmlEl.classList.contains('dark');
+      // Add transition class temporarily
+      document.body.classList.add('theme-transition');
+      applyTheme(isDark ? 'light' : 'dark');
+      setTimeout(() => document.body.classList.remove('theme-transition'), 400);
     });
+  }
 
-    searchInput.addEventListener('keydown', function (e) {
-        const items = suggestionsEl.querySelectorAll('.suggestion-item');
+  initTheme();
 
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            suggestionIndex = Math.min(suggestionIndex + 1, items.length - 1);
-            updateActiveItem(items);
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            suggestionIndex = Math.max(suggestionIndex - 1, -1);
-            updateActiveItem(items);
-        } else if (e.key === 'Enter') {
-            if (suggestionIndex >= 0 && suggestionData[suggestionIndex]) {
-                e.preventDefault();
-                const s = suggestionData[suggestionIndex];
-                window.location.href = '/word/' + encodeURIComponent(s.word_hinglish_roman || s.word_hindi);
-            }
-        } else if (e.key === 'Escape') {
-            hideSuggestions();
-        }
-    });
+  // Listen for system preference changes (only if user hasn't saved a preference)
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (!getSavedTheme()) {
+      applyTheme(e.matches ? 'dark' : 'light');
+    }
+  });
 
-    // Close suggestions on click outside
-    document.addEventListener('click', function (e) {
-        if (!searchInput.contains(e.target) && !suggestionsEl.contains(e.target)) {
-            hideSuggestions();
-        }
-    });
+  // ─── Copyright year ───
+  const yearEl = document.getElementById('cYear');
+  if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
-    function fetchSuggestions(q) {
-        const url = '/api/suggest?q=' + encodeURIComponent(q) + '&limit=8';
+  // ─── Autocomplete ───
 
-        fetch(url)
-            .then(r => r.json())
-            .then(data => {
-                suggestionData = data.suggestions || [];
-                renderSuggestions(q);
-            })
-            .catch(() => { /* silently fail — search still works */ });
+  const searchInput = document.getElementById('search-input');
+  const suggestionsEl = document.getElementById('suggestions');
+  let suggestionIndex = -1;
+  let suggestionData = [];
+  let debounceTimer = null;
+
+  // ─── Keyboard shortcut: / to focus search ───
+  document.addEventListener('keydown', function (e) {
+    const input = document.getElementById('search-input');
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement !== input) {
+      e.preventDefault();
+      input?.focus();
+    }
+  });
+
+  if (!searchInput || !suggestionsEl) return;
+
+  searchInput.addEventListener('input', function () {
+    const q = this.value.trim();
+    clearTimeout(debounceTimer);
+    if (q.length < 1) {
+      hideSuggestions();
+      return;
+    }
+    debounceTimer = setTimeout(() => fetchSuggestions(q), 120);
+  });
+
+  searchInput.addEventListener('keydown', function (e) {
+    const items = suggestionsEl.querySelectorAll('.suggestion-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      suggestionIndex = Math.min(suggestionIndex + 1, items.length - 1);
+      updateActiveItem(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      suggestionIndex = Math.max(suggestionIndex - 1, -1);
+      updateActiveItem(items);
+    } else if (e.key === 'Enter') {
+      if (suggestionIndex >= 0 && suggestionData[suggestionIndex]) {
+        e.preventDefault();
+        const s = suggestionData[suggestionIndex];
+        window.location.href = '/word/' + encodeURIComponent(s.word_hinglish_roman || s.word_hindi);
+      }
+    } else if (e.key === 'Escape') {
+      hideSuggestions();
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!searchInput.contains(e.target) && !suggestionsEl.contains(e.target)) {
+      hideSuggestions();
+    }
+  });
+
+  function fetchSuggestions(q) {
+    fetch('/api/suggest?q=' + encodeURIComponent(q) + '&limit=8')
+      .then(r => r.json())
+      .then(data => {
+        suggestionData = data.suggestions || [];
+        renderSuggestions(q);
+      })
+      .catch(() => {});
+  }
+
+  function renderSuggestions(query) {
+    suggestionIndex = -1;
+    if (suggestionData.length === 0) {
+      hideSuggestions();
+      return;
+    }
+    let html = '';
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('(' + escapedQuery + ')', 'gi');
+
+    for (let i = 0; i < suggestionData.length; i++) {
+      const s = suggestionData[i];
+      const roman = s.word_hinglish_roman || '';
+      const hindi = s.word_hindi || '';
+      const href = '/word/' + encodeURIComponent(roman || hindi);
+
+      const highlightedHindi = hindi.replace(re, '<mark class="bg-primary-fixed text-primary rounded-sm px-0.5">$1</mark>');
+      const highlightedRoman = roman.replace(re, '<mark class="bg-primary-fixed text-primary rounded-sm px-0.5">$1</mark>');
+
+      html += '<a href="' + href + '" class="suggestion-item" data-index="' + i + '">' +
+        '<span class="suggestion-hindi">' + highlightedHindi + '</span>' +
+        '<span class="suggestion-roman">' + highlightedRoman + '</span>' +
+        '</a>';
     }
 
-    function renderSuggestions(query) {
-        suggestionIndex = -1;
+    suggestionsEl.innerHTML = html;
+    suggestionsEl.hidden = false;
+  }
 
-        if (suggestionData.length === 0) {
-            hideSuggestions();
-            return;
-        }
-
-        let html = '';
-        for (const s of suggestionData) {
-            const roman = s.word_hinglish_roman || '';
-            const hindi = s.word_hindi || '';
-            const href = '/word/' + encodeURIComponent(roman || hindi);
-
-            // Highlight matching portion
-            const re = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-            const highlightedRoman = roman.replace(re, '<strong>$1</strong>');
-            const highlightedHindi = hindi.replace(re, '<strong>$1</strong>');
-
-            html += '<a href="' + href + '" class="suggestion-item" data-index="' + (suggestionData.indexOf(s)) + '">' +
-                '<span class="suggestion-hindi">' + highlightedHindi + '</span>' +
-                '<span class="suggestion-roman">' + highlightedRoman + '</span>' +
-                '</a>';
-        }
-
-        suggestionsEl.innerHTML = html;
-        suggestionsEl.hidden = false;
-
-        // Click handler for suggestion items (prevents navigation, uses direct link)
-        suggestionsEl.querySelectorAll('.suggestion-item').forEach(el => {
-            el.addEventListener('mousedown', function (e) {
-                // Use mousedown instead of click to fire before blur
-                // The href already handles navigation
-            });
-        });
-    }
-
-    function updateActiveItem(items) {
-        items.forEach((el, i) => {
-            el.classList.toggle('active', i === suggestionIndex);
-            if (i === suggestionIndex) {
-                el.scrollIntoView({ block: 'nearest' });
-            }
-        });
-    }
-
-    function hideSuggestions() {
-        suggestionsEl.hidden = true;
-        suggestionData = [];
-        suggestionIndex = -1;
-    }
-
-    // ─── Keyboard shortcut: focus search ───
-    document.addEventListener('keydown', function (e) {
-        if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement !== searchInput) {
-            e.preventDefault();
-            searchInput.focus();
-        }
+  function updateActiveItem(items) {
+    items.forEach((el, i) => {
+      el.classList.toggle('active', i === suggestionIndex);
+      if (i === suggestionIndex) {
+        el.scrollIntoView({ block: 'nearest' });
+      }
     });
+  }
+
+  function hideSuggestions() {
+    suggestionsEl.hidden = true;
+    suggestionData = [];
+    suggestionIndex = -1;
+  }
 
 })();
