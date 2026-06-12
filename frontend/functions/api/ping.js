@@ -1,28 +1,16 @@
 export async function onRequest(context) {
     const { env } = context;
-    let allResult = null;
-    let firstResult = null;
-    let allJson = null;
-    let firstJson = null;
+    let result = null;
     let error = null;
     try {
-        allResult = env.DB.prepare('SELECT COUNT(*) as count FROM entries').all();
-        allJson = JSON.parse(JSON.stringify(allResult));
-        firstResult = env.DB.prepare('SELECT COUNT(*) as count FROM entries').first();
-        firstJson = JSON.parse(JSON.stringify(firstResult));
+        result = await env.DB.prepare('SELECT COUNT(*) as count FROM entries').all();
     } catch (e) {
-        error = { message: e.message };
+        error = { message: e.message, stack: e.stack?.substring(0, 500) };
     }
     return new Response(JSON.stringify({
-        allResult,
-        allJson,
-        allKeys: allResult ? Object.getOwnPropertyNames(allResult) : null,
-        firstResult,
-        firstJson,
-        firstKeys: firstResult ? Object.getOwnPropertyNames(firstResult) : null,
-        firstVal: firstResult ? firstResult.count : null,
+        hasDb: typeof env.DB !== 'undefined',
         dbType: typeof env.DB,
-        dbKeys: Object.getOwnPropertyNames(env.DB),
+        result,
         error,
     }), {
         headers: { 'Content-Type': 'application/json' },
