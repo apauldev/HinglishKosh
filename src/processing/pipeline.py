@@ -79,7 +79,10 @@ def _transliterate_definitions(entries: list[dict[str, Any]]) -> list[dict[str, 
             entry["definition_hinglish"] = transliterate_rule_based(definition)
         elif definition:
             # Already romanized - use as-is or convert from ISO
-            entry["definition_hinglish"] = iso_to_hinglish(definition) if not _has_devanagari(definition) else definition
+            if _has_devanagari(definition):
+                entry["definition_hinglish"] = definition
+            else:
+                entry["definition_hinglish"] = iso_to_hinglish(definition)
 
         # Transliterate example sentence if it contains Devanagari
         if example and _has_devanagari(example):
