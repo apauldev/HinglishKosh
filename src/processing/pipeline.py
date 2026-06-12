@@ -92,6 +92,60 @@ def _transliterate_definitions(entries: list[dict[str, Any]]) -> list[dict[str, 
     return entries
 
 
+def _deduplicate_by_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Deduplicate entries by word_hinglish_roman, keeping the best entry.
+
+    Best entry is determined by:
+    1. Longest definition (more detailed = better)
+    2. WordNet source preferred over Wiktionary
+    3. Has example sentence (bonus)
+    """
+    seen: dict[str, dict[str, Any]] = {}
+
+    for entry in entries:
+        roman = entry.get("word_hinglish_roman", "")
+        if not roman:
+            continue
+
+        if roman not in seen:
+            seen[roman] = entry
+            continue
+
+        existing = seen[roman]
+        # Compare quality
+        existing_score = _entry_quality_score(existing)
+        new_score = _entry_quality_score(entry)
+
+        if new_score > existing_score:
+            seen[roman] = entry
+
+    result = list(seen.values())
+    logger.info(
+        "Deduplicated %d → %d entries by roman form",
+        len(entries),
+        len(result),
+    )
+    return result
+
+
+def _entry_quality_score(entry: dict[str, Any]) -> int:
+    """Score an entry's quality for deduplication ranking."""
+    score = 0
+    # Longer definition = more detailed
+    definition = entry.get("definition", "")
+    score += len(definition)
+    # WordNet preferred
+    if entry.get("source") == "WordNet":
+        score += 100
+    # Has example sentence
+    if entry.get("example_sentence"):
+        score += 50
+    # Has example_hinglish
+    if entry.get("example_hinglish"):
+        score += 50
+    return score
+
+
 def run_pipeline(
     data_dir: Path = Path("data/raw"),
     output_dir: Path = Path("data/output"),
@@ -153,6 +207,9 @@ def run_pipeline(
 
     # Assign unified IDs
     merged = assign_ids(merged)
+
+    # Deduplicate by word_hinglish_roman (keep best definition per word)
+    merged = _deduplicate_by_roman(merged)
 
     # === Stage 5: Safety Filter ===
     if not skip_safety:
