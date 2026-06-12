@@ -1,10 +1,8 @@
 name = "hinglishkosh"
 pages_build_output_dir = "public"
+compatibility_date = "2026-06-12"
 
-# D1 binding — configure in Cloudflare Pages dashboard:
-#   Dashboard → hinglishkosh → Settings → Functions → D1 Database Bindings
-#   Variable name: DB
-#   D1 Database: hinglishkosh
-#
-# For local dev, set via env:
-#   export CLOUDFLARE_D1_ID="your-database-uuid"
+[[d1_databases]]
+binding = "DB"
+database_name = "hinglishkosh"
+database_id = "d22598b7-8cbe-4c04-8534-afd578777f1c"
