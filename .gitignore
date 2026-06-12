@@ -48,3 +48,7 @@ frontend/.seed_*.sql
 frontend/src/translate/
 frontend/tests/
 
+# D1 dump files
+frontend/.d1_dumps/
+.wrangler/
+
