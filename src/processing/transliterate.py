@@ -166,6 +166,7 @@ def _should_strip_final_inherent_a(text: str) -> bool:
         return char in _DEVANAGARI_CONSONANTS or char in _DEVANAGARI_BASE_CONSONANTS
     return False
 
+
 # Common Hindi words with well-known romanizations
 _COMMON_WORDS = {
     "नमस्ते": "namaste",
