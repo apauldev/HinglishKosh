@@ -18,14 +18,14 @@ export async function onRequest(context) {
         return htmlResponse(notFound(), 404);
     }
 
-    const entry = db.prepare(`
+    const entry = await db.prepare(`
         SELECT * FROM entries
         WHERE word_hinglish_roman = ? OR word_hindi = ?
         LIMIT 1
     `).bind(slug, slug).first();
 
     if (!entry) {
-        const partial = db.prepare(`
+        const partial = await db.prepare(`
             SELECT * FROM entries
             WHERE word_hinglish_roman LIKE ? OR word_hindi LIKE ?
             LIMIT 1
@@ -45,7 +45,7 @@ export async function onRequest(context) {
     // Fetch related words from D1
     const related = {};
     for (const relType of ['same_synset', 'broader', 'narrower']) {
-        const rows = db.prepare(`
+        const rows = await db.prepare(`
             SELECT e.word_hindi, e.word_hinglish_roman, e.id
             FROM related_words r
             JOIN entries e ON e.id = r.related_entry_id

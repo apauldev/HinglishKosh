@@ -5,19 +5,19 @@ export async function onRequest(context) {
     const { env } = context;
     const db = getDb(env);
 
-    const total = db.prepare('SELECT COUNT(*) as count FROM entries').first();
-    const safe = db.prepare('SELECT COUNT(*) as count FROM entries WHERE severity_score < 0.5').first();
-    const toxic = db.prepare('SELECT COUNT(*) as count FROM entries WHERE severity_score >= 0.5').first();
-    const relations = db.prepare('SELECT COUNT(*) as count FROM related_words').first();
+    const total = await db.prepare('SELECT COUNT(*) as count FROM entries').first();
+    const safe = await db.prepare('SELECT COUNT(*) as count FROM entries WHERE severity_score < 0.5').first();
+    const toxic = await db.prepare('SELECT COUNT(*) as count FROM entries WHERE severity_score >= 0.5').first();
+    const relations = await db.prepare('SELECT COUNT(*) as count FROM related_words').first();
 
-    const sources = db.prepare(`
+    const sources = await db.prepare(`
         SELECT source, COUNT(*) as count
         FROM entries
         GROUP BY source
         ORDER BY count DESC
     `).all();
 
-    const posDist = db.prepare(`
+    const posDist = await db.prepare(`
         SELECT part_of_speech, COUNT(*) as count
         FROM entries
         WHERE part_of_speech != ''
