@@ -1,0 +1,19 @@
+{
+    "version": 1,
+    "include": [
+        "/api/*",
+        "/word/*",
+        "/search",
+        "/search/"
+    ],
+    "exclude": [
+        "/style.css",
+        "/app.js",
+        "/favicon.ico",
+        "/robots.txt",
+        "/404.html",
+        "/about",
+        "/about/",
+        "/"
+    ]
+}

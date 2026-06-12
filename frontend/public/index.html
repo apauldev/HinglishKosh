@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html class="light" lang="hi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HinglishKosh (हिंग्लिशकोश) — The Open Hinglish Dictionary</title>
+<meta name="description" content="A comprehensive open-source Hinglish-English dictionary with 209,462 entries. Search Hindi words, English definitions, and Hinglish romanizations.">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/style.css">
+<style>
+.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+.hindi-text { font-family: 'Noto Sans Devanagari', sans-serif; }
+.hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.hover-lift:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05); }
+
+/* Autocomplete dropdown */
+.suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  margin-top: 4px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid #c7c4d7;
+  background-color: #fff;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  max-height: 320px;
+  overflow-y: auto;
+}
+.dark .suggestions {
+  border-color: #49454f;
+  background-color: #1d1b20;
+}
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  font-size: 16px;
+  transition: background-color 0.15s;
+  border-bottom: 1px solid #e7e0ec;
+  cursor: pointer;
+}
+.dark .suggestion-item { border-color: #49454f; }
+.suggestion-item:last-child { border-bottom: 0; }
+.suggestion-item:hover,
+.suggestion-item.active { background-color: #eef2ff; }
+.dark .suggestion-item:hover,
+.dark .suggestion-item.active { background-color: rgba(96,99,238,0.15); }
+.suggestion-hindi { font-family: 'Noto Sans Devanagari', sans-serif; font-weight: 600; color: #1d1b20; }
+.dark .suggestion-hindi { color: #e6e1e5; }
+.suggestion-roman { font-size: 14px; color: #6b7280; }
+</style>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "tertiary-fixed": "#e0e3e5",
+        "surface-container-highest": "#d3e4fe",
+        "inverse-surface": "#213145",
+        "primary-fixed": "#e1e0ff",
+        "primary-container": "#6063ee",
+        "secondary-container": "#dae2fd",
+        "on-secondary-container": "#5c647a",
+        "surface-container-low": "#eff4ff",
+        "on-error": "#ffffff",
+        "on-background": "#0b1c30",
+        "tertiary-fixed-dim": "#c4c7c9",
+        "on-secondary": "#ffffff",
+        "on-secondary-fixed": "#131b2e",
+        "on-surface": "#0b1c30",
+        "error-container": "#ffdad6",
+        "surface-bright": "#f8f9ff",
+        "on-tertiary-fixed-variant": "#444749",
+        "surface": "#f8f9ff",
+        "on-tertiary-fixed": "#191c1e",
+        "surface-dim": "#cbdbf5",
+        "on-tertiary-container": "#fbfdff",
+        "surface-container-lowest": "#ffffff",
+        "inverse-on-surface": "#eaf1ff",
+        "inverse-primary": "#c0c1ff",
+        "on-primary": "#ffffff",
+        "outline": "#767586",
+        "surface-container": "#e5eeff",
+        "primary": "#4648d4",
+        "secondary-fixed": "#dae2fd",
+        "error": "#ba1a1a",
+        "secondary-fixed-dim": "#bec6e0",
+        "on-primary-fixed": "#07006c",
+        "on-primary-fixed-variant": "#2f2ebe",
+        "tertiary-container": "#727577",
+        "background": "#f8f9ff",
+        "on-surface-variant": "#464554",
+        "surface-container-high": "#dce9ff",
+        "surface-tint": "#494bd6",
+        "primary-fixed-dim": "#c0c1ff",
+        "outline-variant": "#c7c4d7",
+        "on-tertiary": "#ffffff",
+        "on-primary-container": "#fffbff",
+        "on-secondary-fixed-variant": "#3f465c",
+        "tertiary": "#595c5e",
+        "surface-variant": "#d3e4fe",
+        "secondary": "#565e74",
+        "on-error-container": "#93000a"
+      },
+      borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
+      spacing: {
+        "stack-md": "12px", "margin-desktop": "48px", "stack-sm": "4px",
+        "gutter": "24px", "container-max": "1440px", "stack-lg": "32px", "margin-mobile": "16px"
+      },
+      fontFamily: {
+        "hindi-entry": ["Noto Sans Devanagari", "sans-serif"],
+        "display-word": ["Inter", "sans-serif"],
+        "definition-num": ["Inter", "sans-serif"],
+        "label-caps": ["Inter", "sans-serif"],
+        "display-word-mobile": ["Inter", "sans-serif"],
+        "body-md": ["Inter", "sans-serif"],
+        "headline-md": ["Inter", "sans-serif"],
+        "body-lg": ["Inter", "sans-serif"]
+      },
+      fontSize: {
+        "hindi-entry": ["42px", {"lineHeight": "60px", "fontWeight": "500"}],
+        "display-word": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+        "definition-num": ["14px", {"lineHeight": "20px", "fontWeight": "700"}],
+        "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+        "display-word-mobile": ["36px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+      }
+    }
+  }
+}
+</script>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased overflow-x-hidden dark:bg-[#1d1b20] dark:text-[#e6e1e5]">
+<!-- TopAppBar -->
+<header class="bg-surface sticky top-0 z-50 border-b border-outline-variant dark:bg-[#1d1b20] dark:border-[#49454f]">
+<div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto">
+<div class="flex items-center gap-8">
+<a class="flex items-center gap-2.5 group" href="/" aria-label="HinglishKosh home">
+<svg viewBox="0 0 36 36" class="h-9 w-9 shrink-0">
+<defs>
+<linearGradient id="logo-g" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+<stop stop-color="#4648d4"/>
+<stop offset="1" stop-color="#7c3aed"/>
+</linearGradient>
+</defs>
+<rect width="36" height="36" rx="9" fill="url(#logo-g)"/>
+<text x="18" y="24" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-weight="700" font-size="17" fill="white">हिं</text>
+</svg>
+<div class="flex flex-col leading-tight">
+<span class="text-base font-bold tracking-tight text-on-surface dark:text-[#e6e1e5]">हिंग्लिशकोश</span>
+<span class="text-[11px] font-medium tracking-wider text-on-surface-variant dark:text-[#cac4d0] uppercase">HinglishKosh</span>
+</div>
+</a>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="font-label-caps text-label-caps text-primary border-b-2 border-primary pb-1 font-bold" href="/">Home</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors dark:text-[#cac4d0] dark:hover:text-[#c0c1ff]" href="/about">About</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button id="theme-toggle" class="material-symbols-outlined text-on-surface-variant p-2 hover:bg-surface-container rounded-full dark:text-[#cac4d0] dark:hover:bg-[#2b2930]" aria-label="Toggle theme">dark_mode</button>
+</div>
+</div>
+</header>
+
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pb-stack-lg">
+<!-- Hero & Search Section -->
+<section class="py-16 md:py-32 flex flex-col items-center text-center">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high rounded-full mb-8 dark:bg-[#2b2930]">
+<span class="material-symbols-outlined text-[16px] text-primary dark:text-[#c0c1ff]">analytics</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant dark:text-[#cac4d0]">209K+ ENTRIES · OPEN SOURCE · FREE</span>
+</div>
+<h1 class="font-display-word text-display-word-mobile md:text-display-word mb-12 max-w-3xl dark:text-[#e6e1e5]">
+Decode Hindi like a <span class="text-primary dark:text-[#c0c1ff]">native speaker.</span>
+</h1>
+<div class="w-full max-w-2xl relative">
+<form action="/search" method="get" role="search" id="search-form">
+<div class="flex items-center bg-surface-container-lowest border border-outline-variant rounded-xl focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm dark:bg-[#2b2930] dark:border-[#49454f] dark:focus-within:border-[#c0c1ff]">
+<span class="material-symbols-outlined pl-6 text-outline dark:text-[#cac4d0]">search</span>
+<input id="search-input" name="q" class="w-full py-5 px-4 bg-transparent border-none focus:ring-0 font-body-lg text-on-surface placeholder:text-on-surface-variant dark:text-[#e6e1e5] dark:placeholder:text-[#cac4d0]" type="text" placeholder="Type a word in English, Hindi, or Hinglish..." autocomplete="off" aria-label="Search the dictionary"/>
+<button type="submit" class="mr-2 px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-container transition-colors dark:bg-[#c0c1ff] dark:text-[#1d1b20] dark:hover:bg-[#a8a9ff] hidden md:block">Search</button>
+<div class="pr-4 hidden xl:flex items-center gap-2">
+<kbd class="px-2 py-1 bg-surface-container-high border border-outline-variant text-label-caps rounded text-on-surface-variant dark:bg-[#2b2930] dark:border-[#49454f] dark:text-[#cac4d0]">/</kbd>
+</div>
+</div>
+</form>
+<div id="suggestions" class="suggestions" hidden></div>
+<div class="flex flex-wrap justify-center gap-3 mt-6">
+<span class="font-label-caps text-label-caps text-outline-variant self-center mr-2 dark:text-[#cac4d0]">QUICK SEARCH:</span>
+<a class="px-4 py-1.5 border border-outline-variant rounded-full font-body-md text-on-surface-variant hover:border-primary hover:text-primary transition-colors bg-white dark:bg-[#2b2930] dark:border-[#49454f] dark:text-[#cac4d0] dark:hover:border-[#c0c1ff] dark:hover:text-[#c0c1ff]" href="/word/namaste">namaste</a>
+<a class="px-4 py-1.5 border border-outline-variant rounded-full font-body-md text-on-surface-variant hover:border-primary hover:text-primary transition-colors bg-white dark:bg-[#2b2930] dark:border-[#49454f] dark:text-[#cac4d0] dark:hover:border-[#c0c1ff] dark:hover:text-[#c0c1ff]" href="/word/paani">paani</a>
+<a class="px-4 py-1.5 border border-outline-variant rounded-full font-body-md text-on-surface-variant hover:border-primary hover:text-primary transition-colors bg-white dark:bg-[#2b2930] dark:border-[#49454f] dark:text-[#cac4d0] dark:hover:border-[#c0c1ff] dark:hover:text-[#c0c1ff]" href="/word/chai">chai</a>
+<a class="px-4 py-1.5 border border-outline-variant rounded-full font-body-md text-on-surface-variant hover:border-primary hover:text-primary transition-colors bg-white dark:bg-[#2b2930] dark:border-[#49454f] dark:text-[#cac4d0] dark:hover:border-[#c0c1ff] dark:hover:text-[#c0c1ff]" href="/word/pyaar">pyaar</a>
+<a class="px-4 py-1.5 border border-outline-variant rounded-full font-body-md text-on-surface-variant hover:border-primary hover:text-primary transition-colors bg-white dark:bg-[#2b2930] dark:border-[#49454f] dark:text-[#cac4d0] dark:hover:border-[#c0c1ff] dark:hover:text-[#c0c1ff]" href="/word/dhanyavaad">dhanyavaad</a>
+</div>
+</div>
+</section>
+
+<!-- Feature Grid: Audiences -->
+<section class="py-16">
+<div class="mb-12">
+<h3 class="font-headline-md text-headline-md mb-2 dark:text-[#e6e1e5]">Designed for your linguistic journey</h3>
+<p class="font-body-md text-on-surface-variant dark:text-[#cac4d0]">Three definitions for every word — one for each type of learner.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-6">
+
+<!-- Non-Hindi Speakers → English definitions -->
+<div class="bg-surface-container-low border border-outline-variant p-8 rounded-xl hover-lift flex flex-col dark:bg-[#2b2930] dark:border-[#49454f]">
+<div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-6 shadow-md">
+<span class="material-symbols-outlined text-white">translate</span>
+</div>
+<h4 class="font-headline-md text-headline-md mb-4 dark:text-[#e6e1e5]">English</h4>
+<p class="font-body-md text-on-surface-variant flex-grow dark:text-[#cac4d0]">
+Every entry has an English translation — simple, clear, and ready for non-Hindi speakers who want to understand what a word means.
+</p>
+</div>
+
+<!-- Hindi Speakers → Devanagari definitions -->
+<div class="bg-surface-container-low border border-outline-variant p-8 rounded-xl hover-lift flex flex-col dark:bg-[#2b2930] dark:border-[#49454f]">
+<div class="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center mb-6 shadow-md">
+<span class="material-symbols-outlined text-white">menu_book</span>
+</div>
+<h4 class="font-headline-md text-headline-md mb-4 dark:text-[#e6e1e5]">Hindi (Devanagari)</h4>
+<p class="font-body-md text-on-surface-variant flex-grow dark:text-[#cac4d0]">
+The original Devanagari definition sourced from Hindi WordNet (IIT Bombay) — authoritative and academically verified.
+</p>
+</div>
+
+<!-- Diaspora → Hinglish definitions -->
+<div class="bg-surface-container-low border border-outline-variant p-8 rounded-xl hover-lift flex flex-col dark:bg-[#2b2930] dark:border-[#49454f]">
+<div class="w-12 h-12 bg-tertiary-container rounded-lg flex items-center justify-center mb-6 shadow-md">
+<span class="material-symbols-outlined text-white">public</span>
+</div>
+<h4 class="font-headline-md text-headline-md mb-4 dark:text-[#e6e1e5]">Hinglish (Roman)</h4>
+<p class="font-body-md text-on-surface-variant flex-grow dark:text-[#cac4d0]">
+Hindi meanings written in Roman script — for the diaspora and learners who speak Hindi but can't read Devanagari.
+</p>
+</div>
+
+</div>
+</section>
+
+<!-- Stats Counter Section -->
+<section class="py-12 border-y border-outline-variant my-16 dark:border-[#49454f]">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+<div class="text-center">
+<div class="font-display-word text-headline-md text-primary dark:text-[#c0c1ff]">209k</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant dark:text-[#cac4d0]">ENTRIES</div>
+</div>
+<div class="text-center">
+<div class="font-display-word text-headline-md text-primary dark:text-[#c0c1ff]">153k</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant dark:text-[#cac4d0]">WORDNET (HINDI)</div>
+</div>
+<div class="text-center">
+<div class="font-display-word text-headline-md text-primary dark:text-[#c0c1ff]">56k</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant dark:text-[#cac4d0]">WIKTIONARY</div>
+</div>
+<div class="text-center">
+<div class="font-display-word text-headline-md text-primary dark:text-[#c0c1ff]">40k+</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant dark:text-[#cac4d0]">SYNSET RELATIONS</div>
+</div>
+</div>
+</section>
+
+<!-- Why HinglishKosh Section -->
+<section class="py-16">
+<div class="max-w-3xl mx-auto">
+<h3 class="font-headline-md text-headline-md mb-2 dark:text-[#e6e1e5]">Why HinglishKosh?</h3>
+<p class="font-body-md text-on-surface-variant mt-6 dark:text-[#cac4d0]">
+Over <strong class="text-on-surface dark:text-[#e6e1e5]">600 million people</strong> in India communicate daily in Hinglish — a natural blend of Hindi and English written in the Roman script. It's how you text your friends, type on WhatsApp, and scroll through social media.
+</p>
+<p class="font-body-md text-on-surface-variant mt-4 dark:text-[#cac4d0]">
+Yet before this, there was <strong class="text-on-surface dark:text-[#e6e1e5]">no open dictionary</strong> for it. Academic resources use ISO 15919 transliteration (<em class="italic">cāy</em>, <em class="italic">pānī</em>) — accurate but nobody types that way. Commercial keyboards keep their dictionaries closed.
+</p>
+<p class="font-headline-md text-headline-md mt-6 text-primary dark:text-[#c0c1ff]">HinglishKosh fixes that.</p>
+</div>
+</section>
+</main>
+
+<!-- Footer -->
+<footer class="bg-surface-container-low border-t border-outline-variant dark:bg-[#1d1b20] dark:border-[#49454f]">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center w-full px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto gap-8">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-2.5">
+<svg viewBox="0 0 36 36" class="h-8 w-8 shrink-0">
+<rect width="36" height="36" rx="9" fill="url(#logo-g)"/>
+<text x="18" y="24" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-weight="700" font-size="17" fill="white">हिं</text>
+</svg>
+<span class="font-display-word text-headline-md text-primary dark:text-[#c0c1ff]">हिंग्लिशकोश</span>
+</div>
+<p class="text-on-secondary-container max-w-sm font-body-md dark:text-[#cac4d0]">
+The open-source Hinglish-English dictionary. Built for how India actually types.
+</p>
+<div class="text-on-secondary-container font-label-caps text-label-caps mt-4 dark:text-[#cac4d0]">
+© <span id="cYear">2024</span> HinglishKosh · GPL v3
+</div>
+</div>
+<div class="grid grid-cols-2 gap-12 md:flex md:gap-16">
+<div class="flex flex-col gap-3">
+<span class="font-label-caps text-label-caps font-bold text-on-surface mb-2 dark:text-[#e6e1e5]">PROJECT</span>
+<a class="font-body-md text-on-secondary-container hover:underline decoration-primary transition-all dark:text-[#cac4d0]" href="/about">About</a>
+<a class="font-body-md text-on-secondary-container hover:underline decoration-primary transition-all dark:text-[#cac4d0]" href="https://github.com/apauldev/HinglishKosh">GitHub</a>
+<a class="font-body-md text-on-secondary-container hover:underline decoration-primary transition-all dark:text-[#cac4d0]" href="https://github.com/apauldev/HinglishKosh/blob/main/LICENSE">License</a>
+</div>
+<div class="flex flex-col gap-3">
+<span class="font-label-caps text-label-caps font-bold text-on-surface mb-2 dark:text-[#e6e1e5]">COMMUNITY</span>
+<a class="font-body-md text-on-secondary-container hover:underline decoration-primary transition-all dark:text-[#cac4d0]" href="https://github.com/apauldev/HinglishKosh/issues">Feedback</a>
+<a class="font-body-md text-on-secondary-container hover:underline decoration-primary transition-all dark:text-[#cac4d0]" href="https://github.com/apauldev/HinglishKosh">Contribute</a>
+</div>
+</div>
+</div>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html class="light" lang="hi">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>404 — HinglishKosh</title>
+<meta name="description" content="Page not found">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Noto Sans Devanagari', 'sans-serif'] } } },
+}
+</script>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="flex min-h-screen flex-col font-body-md text-on-surface bg-background antialiased">
+<header class="bg-surface dark:bg-on-background border-b border-outline-variant dark:border-on-surface-variant sticky top-0 z-50">
+<div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto">
+<div class="flex items-center gap-8">
+<a class="flex items-center gap-2.5 group" href="/" aria-label="HinglishKosh home">
+<svg viewBox="0 0 36 36" class="h-9 w-9 shrink-0">
+<defs>
+<linearGradient id="logo-g" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+<stop stop-color="#4648d4"/>
+<stop offset="1" stop-color="#7c3aed"/>
+</linearGradient>
+</defs>
+<rect width="36" height="36" rx="9" fill="url(#logo-g)"/>
+<text x="18" y="24" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-weight="700" font-size="17" fill="white">हिं</text>
+</svg>
+<div class="flex flex-col leading-tight">
+<span class="text-base font-bold tracking-tight text-on-surface dark:text-[#e6e1e5]">हिंग्लिशकोश</span>
+<span class="text-[11px] font-medium tracking-wider text-on-surface-variant dark:text-[#cac4d0] uppercase">HinglishKosh</span>
+</div>
+</a>
+<nav class="hidden md:flex gap-6">
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="/">Home</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary transition-colors font-label-caps text-label-caps" href="/about">About</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button id="theme-toggle" class="text-on-surface-variant p-2 rounded-full hover:bg-surface-container-high transition-colors dark:text-[#cac4d0] dark:hover:bg-[#2b2930]" aria-label="Toggle theme">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+</div>
+</div>
+</header>
+
+<main class="flex flex-1 items-center justify-center px-4">
+<div class="text-center">
+<p class="text-7xl font-bold text-primary">404</p>
+<h1 class="mt-4 text-headline-md font-headline-md text-on-surface">Page not found</h1>
+<p class="mt-2 text-body-md text-on-surface-variant">The page you're looking for doesn't exist.</p>
+<div class="mt-8 flex justify-center gap-4">
+<a href="/" class="premium-card px-6 py-3 font-label-caps text-label-caps text-primary hover:scale-105 transition-transform">Go home</a>
+<a href="/search" class="premium-card px-6 py-3 font-label-caps text-label-caps text-on-surface-variant hover:scale-105 transition-transform">Search</a>
+</div>
+</div>
+</main>
+
+<footer class="bg-surface-container-low border-t border-outline-variant dark:bg-[#1d1b20] dark:border-[#49454f]">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center w-full px-margin-mobile md:px-margin-desktop py-stack-lg max-w-container-max mx-auto gap-8">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-2.5">
+<svg viewBox="0 0 36 36" class="h-8 w-8 shrink-0">
+<rect width="36" height="36" rx="9" fill="url(#logo-g)"/>
+<text x="18" y="24" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-weight="700" font-size="17" fill="white">हिं</text>
+</svg>
+<span class="font-display-word text-headline-md text-primary dark:text-[#c0c1ff]">हिंग्लिशकोश</span>
+</div>
+<p class="text-on-secondary-container max-w-sm font-body-md dark:text-[#cac4d0]">
+The open-source Hinglish-English dictionary. Built for how India actually types.
+</p>
+<div class="text-on-secondary-container font-label-caps text-label-caps mt-4 dark:text-[#cac4d0]">
+© <span id="cYear">2024</span> HinglishKosh · GPL v3
+</div>
+</div>
+<div class="grid grid-cols-2 gap-12 md:flex md:gap-16">
+<div class="flex flex-col gap-3">
+<span class="font-label-caps text-label-caps font-bold text-on-surface mb-2 dark:text-[#e6e1e5]">PROJECT</span>
+<a class="font-body-md text-on-secondary-container hover:underline decoration-primary transition-all dark:text-[#cac4d0]" href="/about">About</a>
+<a class="font-body-md text-on-secondary-container hover:underline decoration-primary transition-all dark:text-[#cac4d0]" href="https://github.com/apauldev/HinglishKosh">GitHub</a>
+<a class="font-body-md text-on-secondary-container hover:underline decoration-primary transition-all dark:text-[#cac4d0]" href="https://github.com/apauldev/HinglishKosh/blob/main/LICENSE">License</a>
+</div>
+<div class="flex flex-col gap-3">
+<span class="font-label-caps text-label-caps font-bold text-on-surface mb-2 dark:text-[#e6e1e5]">COMMUNITY</span>
+<a class="font-body-md text-on-secondary-container hover:underline decoration-primary transition-all dark:text-[#cac4d0]" href="https://github.com/apauldev/HinglishKosh/issues">Feedback</a>
+<a class="font-body-md text-on-secondary-container hover:underline decoration-primary transition-all dark:text-[#cac4d0]" href="https://github.com/apauldev/HinglishKosh">Contribute</a>
+</div>
+</div>
+</div>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>
