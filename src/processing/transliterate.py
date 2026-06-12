@@ -6,10 +6,10 @@ Uses a rule-based fallback when GoVarnam/IndicTrans models are unavailable.
 from __future__ import annotations
 
 import re
+import unicodedata
 
 # Devanagari to Roman mapping (ISO 15919 inspired, simplified for Hinglish)
-_DEVANAGARI_MAP = {
-    # Vowels
+_DEVANAGARI_INDEPENDENT_VOWELS = {
     "अ": "a",
     "आ": "aa",
     "इ": "i",
@@ -21,7 +21,9 @@ _DEVANAGARI_MAP = {
     "ओ": "o",
     "औ": "au",
     "ऋ": "ri",
-    # Matras (dependent vowels)
+}
+
+_DEVANAGARI_MATRAS = {
     "ा": "aa",
     "ि": "i",
     "ी": "ee",
@@ -32,7 +34,9 @@ _DEVANAGARI_MAP = {
     "ो": "o",
     "ौ": "au",
     "ृ": "ri",
-    # Consonants
+}
+
+_DEVANAGARI_CONSONANTS = {
     "क": "k",
     "ख": "kh",
     "ग": "g",
@@ -70,9 +74,58 @@ _DEVANAGARI_MAP = {
     "क़": "q",
     "ख़": "kh",
     "ग़": "g",
+    "ड़": "d",
+    "ढ़": "dh",
+    "ऱ": "r",
     "ज़": "z",
     "फ़": "f",
-    # Numbers
+}
+
+_DEVANAGARI_SIGN_MAP = {
+    "ं": "n",
+    "ँ": "n",
+    "ः": "h",
+    "्": "",
+    "ॐ": "om",
+}
+
+_DEVANAGARI_BASE_CONSONANTS = {
+    "क",
+    "ख",
+    "ग",
+    "घ",
+    "ङ",
+    "च",
+    "छ",
+    "ज",
+    "झ",
+    "ञ",
+    "ट",
+    "ठ",
+    "ड",
+    "ढ",
+    "ण",
+    "त",
+    "थ",
+    "द",
+    "ध",
+    "न",
+    "प",
+    "फ",
+    "ब",
+    "भ",
+    "म",
+    "य",
+    "र",
+    "ल",
+    "व",
+    "श",
+    "ष",
+    "स",
+    "ह",
+}
+
+_DEVANAGARI_NUMBERS = {
     "०": "0",
     "१": "1",
     "२": "2",
@@ -83,14 +136,35 @@ _DEVANAGARI_MAP = {
     "७": "7",
     "८": "8",
     "९": "9",
-    # Special
-    "ं": "n",
-    "ँ": "n",
-    "ः": "h",
-    "्": "",
-    "़": "",
-    "ॐ": "om",
 }
+
+_DEVANAGARI_NUKTA = "़"
+_DEVANAGARI_VIRAMA = "्"
+
+
+def _compose_nukta_consonant(text: str, index: int) -> tuple[str, int]:
+    """Return a composed consonant and how many extra chars were consumed."""
+    char = text[index]
+    if (
+        char in _DEVANAGARI_BASE_CONSONANTS
+        and index + 1 < len(text)
+        and text[index + 1] == _DEVANAGARI_NUKTA
+    ):
+        combined = char + _DEVANAGARI_NUKTA
+        if combined in _DEVANAGARI_CONSONANTS:
+            return combined, 1
+    return char, 0
+
+
+def _should_strip_final_inherent_a(text: str) -> bool:
+    """Detect whether a transliterated word should drop a trailing schwa."""
+    for char in reversed(text):
+        if char.isspace():
+            continue
+        if unicodedata.category(char)[0] in {"P", "S"}:
+            continue
+        return char in _DEVANAGARI_CONSONANTS or char in _DEVANAGARI_BASE_CONSONANTS
+    return False
 
 # Common Hindi words with well-known romanizations
 _COMMON_WORDS = {
@@ -684,6 +758,8 @@ def transliterate_rule_based(text: str) -> str:
     if not text:
         return ""
 
+    text = unicodedata.normalize("NFC", text)
+
     # Check common words first
     if text in _COMMON_WORDS:
         return _COMMON_WORDS[text]
@@ -693,8 +769,26 @@ def transliterate_rule_based(text: str) -> str:
     while i < len(text):
         char = text[i]
 
-        if char in _DEVANAGARI_MAP:
-            result.append(_DEVANAGARI_MAP[char])
+        char, consumed = _compose_nukta_consonant(text, i)
+        i += consumed
+
+        if char in _DEVANAGARI_INDEPENDENT_VOWELS:
+            result.append(_DEVANAGARI_INDEPENDENT_VOWELS[char])
+        elif char in _DEVANAGARI_CONSONANTS:
+            base = _DEVANAGARI_CONSONANTS[char]
+            next_char = text[i + 1] if i + 1 < len(text) else ""
+            if next_char == _DEVANAGARI_VIRAMA:
+                result.append(base)
+                i += 1
+            elif next_char in _DEVANAGARI_MATRAS:
+                result.append(base + _DEVANAGARI_MATRAS[next_char])
+                i += 1
+            else:
+                result.append(base + "a")
+        elif char in _DEVANAGARI_NUMBERS:
+            result.append(_DEVANAGARI_NUMBERS[char])
+        elif char in _DEVANAGARI_SIGN_MAP:
+            result.append(_DEVANAGARI_SIGN_MAP[char])
         elif "\u0900" <= char <= "\u097f":
             # Unknown Devanagari character — skip
             pass
@@ -704,10 +798,13 @@ def transliterate_rule_based(text: str) -> str:
 
         i += 1
 
-    # Clean up double vowels and consonants
+    # Clean up repeated letters and trim the final inherent vowel for Devanagari words.
     roman = "".join(result)
+    roman = re.sub(r"jny", "gy", roman)
+    if _should_strip_final_inherent_a(text) and roman.endswith("a"):
+        roman = roman[:-1]
+    roman = re.sub(r"aa\b", "a", roman)
     roman = re.sub(r"(.)\1{2,}", r"\1\1", roman)  # max 2 repeats
-    roman = re.sub(r"\baa\b", "aa", roman)
     roman = re.sub(r"\s+", " ", roman).strip()
 
     return roman
@@ -733,16 +830,17 @@ def iso_to_hinglish(text: str) -> str:
     result = re.sub(r"õ", "on", result)
     # Remove remaining combining marks
     result = re.sub(r"[\u0300-\u036f]", "", result)
+    result = result.replace("jñ", "gy")
 
     # Step 1: Strip diacritics with smart vowel handling
     replacements = [
         ("ā", "aa"),
-        ("ī", "ee"),
+        ("ī", "i"),
         ("ū", "oo"),
         ("ē", "e"),
         ("ō", "o"),
-        ("ṛ", "d"),
-        ("ṝ", "d"),  # ड़/ढ़ → d/dh (Hindi pronunciation)
+        ("ṛ", "ri"),
+        ("ṝ", "ri"),
         ("ṃ", "n"),
         ("ṁ", "n"),
         ("ḥ", "h"),
@@ -826,6 +924,13 @@ def iso_to_hinglish(text: str) -> str:
         "naxoon": "nakhun",  # नाखून
         "naaxoon": "nakhun",  # नाखून
         "nakhoon": "nakhun",  # नाखून
+        "jnyan": "gyaan",  # ज्ञान
+        "jnyaan": "gyaan",  # ज्ञान
+        "zindagee": "zindagi",  # जिंदगी
+        "khadee": "khadi",  # खड़ी
+        "ladkee": "ladki",  # लड़की
+        "betee": "beti",  # बेटी
+        "nadee": "nadi",  # नदी
         # Family words with double vowels
         "daada": "dada",  # दादा
         "daadi": "dadi",  # दादी
