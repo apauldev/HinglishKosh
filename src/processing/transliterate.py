@@ -304,7 +304,7 @@ def transliterate_rule_based(text: str) -> str:
     text = unicodedata.normalize("NFC", text)
 
     # Split into tokens (Devanagari words vs punctuation/spaces/hyphens)
-    tokens = re.split(r'(\s+|[,.?!;:\-\(\)\+])', text)
+    tokens = re.split(r"(\s+|[,.?!;:\-\(\)\+])", text)
     result_parts = []
     common = _load_common_words()
 
@@ -312,7 +312,7 @@ def transliterate_rule_based(text: str) -> str:
         if not token:
             continue
         # Check common words for Devanagari tokens
-        if all('\u0900' <= c <= '\u097f' for c in token):
+        if all("\u0900" <= c <= "\u097f" for c in token):
             if token in common:
                 result_parts.append(common[token])
                 continue

@@ -52,7 +52,7 @@ CURATED_DEFS = [
     ),  # noqa: E501
     (
         "जिसका मुकाबला न किया जा सके, सब से अच्छा या बढ़कर, जैसे कोई वाला या व्यक्ति",
-        "jiska mukaabla n kiya ja sake, sab se accha ya badhkr, jaise koi wala ya vykti",
+        "jiska mukaabla n kiya ja sake, sab se achcha ya badhkr, jaise koi wala ya vykti",
     ),
     (
         "किसी काम, समस्या आदि को दुरुस्त करने की कोई तरकीब या वजह",
@@ -69,7 +69,7 @@ CURATED_DEFS = [
     # Trailing vowel collapse
     (
         "वह स्थान जहाँ पानी इकट्ठा किया गया हो अथवा पानी इकट्ठा होने की क्रिया",
-        "wo jagah jahan paani ikattha kiya gaya ho ya paani ikattha hone ki kriya",
+        "woh jagah jahan paani ikattha kiya gaya ho ya paani ikattha hone ki kriya",
     ),
     # Mixed patterns
     (
@@ -77,7 +77,7 @@ CURATED_DEFS = [
         "paani mein mili hui mitti, dhool ya aur koi gandi cheez",
     ),
     # Word-initial व stays v
-    ("जिसका कोई विकल्प न हो या जो सबसे अच्छा हो", "jiska koi viklp n ho ya jo sabse accha ho"),  # noqa: E501
+    ("जिसका कोई विकल्प न हो या जो सबसे अच्छा हो", "jiska koi viklp n ho ya jo sabse achcha ho"),  # noqa: E501
     # Long definitions
     (
         "प्राचीन तंत्र के अनुसार रस, रक्त, मांस, मेद, अस्थि, मज्जा और शुक्र नामक शरीर के ये सात मूल तत्व जिनसे शरीर निर्मित होता है और जिनके क्षीण होने पर शरीर निर्बल और रोगग्रस्त हो जाता है",  # noqa: E501
