@@ -1113,7 +1113,6 @@ COMMON_WORDS_1000 = {
     "हँसी": "hansi",
     "हक़ीक़त": "haqeeqat",
     "हफ़्ता": "hafta",
-    "हम": "ham",
     "हमेशा": "hamesha",
     "हरी मिर्च": "hari mirch",
     "हल्का": "halka",

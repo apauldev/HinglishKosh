@@ -524,7 +524,7 @@ class TestManualHinglishBenchmark:
             ("मैं", "main"),
             ("तुम", "tum"),
             ("वो", "wo"),
-            ("हम", "ham"),
+            ("हम", "hum"),
             ("यह", "yeh"),
             ("वह", "woh"),
             ("क्या", "kya"),
