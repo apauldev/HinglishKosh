@@ -118,7 +118,7 @@
 ### Task 4.3: Package & Publish ⏳
 - [x] Finalize `pyproject.toml` with entry points
 - [x] Add CLI tool: `hinglish-dict lookup <word>`
-- [x] Write tests in `tests/` (701 tests passing)
+- [x] Write tests in `tests/` (991 tests passing)
 - [x] Create GitHub Actions CI pipeline
 - [ ] Prepare Hugging Face Dataset card
 - [x] Tag release: `v1.0.0` → `v1.0.1`
@@ -300,4 +300,4 @@ dependencies = [
 | Phase 5: Distribution | ⏳ Pending | — |
 | Phase 6: Quick-Win Optimizations | ⏳ Pending | — |
 
-**Current Status**: Core dictionary generated with 209K entries. 701 tests passing. Architecture and optimization docs written. Ready for distribution and performance tuning.
+**Current Status**: Core dictionary generated with 209K entries. 991 tests passing. Unicode schwa deletion implemented. Architecture and optimization docs written. Ready for distribution and performance tuning.

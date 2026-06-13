@@ -303,69 +303,82 @@ def transliterate_rule_based(text: str) -> str:
 
     text = unicodedata.normalize("NFC", text)
 
-    # Check common words first
+    # Split into tokens (Devanagari words vs punctuation/spaces/hyphens)
+    tokens = re.split(r"(\s+|[,.?!;:\-\(\)\+])", text)
+    result_parts = []
     common = _load_common_words()
-    if text in common:
-        return common[text]
 
-    result = []
-    i = 0
-    while i < len(text):
-        char = text[i]
+    for token in tokens:
+        if not token:
+            continue
+        # Check common words for Devanagari tokens
+        if all("\u0900" <= c <= "\u097f" for c in token):
+            if token in common:
+                result_parts.append(common[token])
+                continue
 
-        char, consumed = _compose_nukta_consonant(text, i)
-        i += consumed
+            # Rule-based conversion for Devanagari tokens
+            result = []
+            i = 0
+            while i < len(token):
+                char = token[i]
 
-        if char in _DEVANAGARI_INDEPENDENT_VOWELS:
-            result.append(_DEVANAGARI_INDEPENDENT_VOWELS[char])
-        elif char in _DEVANAGARI_CONSONANTS:
-            base = _DEVANAGARI_CONSONANTS[char]
-            next_char = text[i + 1] if i + 1 < len(text) else ""
-            if next_char == _DEVANAGARI_VIRAMA:
-                result.append(base)
+                char, consumed = _compose_nukta_consonant(token, i)
+                i += consumed
+
+                if char in _DEVANAGARI_INDEPENDENT_VOWELS:
+                    result.append(_DEVANAGARI_INDEPENDENT_VOWELS[char])
+                elif char in _DEVANAGARI_CONSONANTS:
+                    base = _DEVANAGARI_CONSONANTS[char]
+                    next_char = token[i + 1] if i + 1 < len(token) else ""
+                    if next_char == _DEVANAGARI_VIRAMA:
+                        result.append(base)
+                        i += 1
+                    elif next_char in _DEVANAGARI_MATRAS:
+                        result.append(base + _DEVANAGARI_MATRAS[next_char])
+                        i += 1
+                    else:
+                        # Unicode schwa deletion: drop inherent 'a' before a consonant (medial only)
+                        is_initial = i == 0 or token[i - 1] in _DEVANAGARI_INDEPENDENT_VOWELS
+                        is_initial = is_initial or token[i - 1] == " "
+                        if not is_initial and next_char in _DEVANAGARI_CONSONANTS:
+                            result.append(base)
+                        else:
+                            result.append(base + "a")
+                elif char in _DEVANAGARI_NUMBERS:
+                    result.append(_DEVANAGARI_NUMBERS[char])
+                elif char in _DEVANAGARI_SIGN_MAP:
+                    result.append(_DEVANAGARI_SIGN_MAP[char])
+                elif "\u0900" <= char <= "\u097f":
+                    # Unknown Devanagari character — skip
+                    pass
+                else:
+                    # Non-Devanagari (Latin, digits, punctuation) — keep as-is
+                    result.append(char)
+
                 i += 1
-            elif next_char in _DEVANAGARI_MATRAS:
-                result.append(base + _DEVANAGARI_MATRAS[next_char])
-                i += 1
-            else:
-                result.append(base + "a")
-        elif char in _DEVANAGARI_NUMBERS:
-            result.append(_DEVANAGARI_NUMBERS[char])
-        elif char in _DEVANAGARI_SIGN_MAP:
-            result.append(_DEVANAGARI_SIGN_MAP[char])
-        elif "\u0900" <= char <= "\u097f":
-            # Unknown Devanagari character — skip
-            pass
+
+            roman = "".join(result)
+            roman = re.sub(r"jny", "gy", roman)
+            roman = _apply_v_to_w(roman)
+            roman = re.sub(_ANUSVARA_SENTINEL + r"([pbm])", r"m\1", roman)
+            roman = roman.replace(_ANUSVARA_SENTINEL, "n")
+
+            if _should_strip_final_inherent_a(token) and roman.endswith("a"):
+                roman = roman[:-1]
+
+            roman = re.sub(r"aa\b", "a", roman)
+            roman = re.sub(r"ee\b", "i", roman)
+            roman = re.sub(r"oo\b", "u", roman)
+            roman = re.sub(r"(.)\1{2,}", r"\1\1", roman)
+            roman = re.sub(r"\s+", " ", roman).strip()
+
+            result_parts.append(roman)
         else:
-            # Non-Devanagari (Latin, digits, punctuation) — keep as-is
-            result.append(char)
+            # Non-Devanagari token (spaces, punctuation) — keep as-is
+            result_parts.append(token)
 
-        i += 1
-
-    # Clean up repeated letters and trim the final inherent vowel for Devanagari words.
-    roman = "".join(result)
-    roman = re.sub(r"jny", "gy", roman)
-
-    # v → w (Hindi व is pronounced 'w' in most words)
-    roman = _apply_v_to_w(roman)
-
-    # Anusvāra assimilation: ṃ → m before labial consonants (p, ph, b, bh, m)
-    roman = re.sub(_ANUSVARA_SENTINEL + r"([pbm])", r"m\1", roman)
-    roman = roman.replace(_ANUSVARA_SENTINEL, "n")
-
-    if _should_strip_final_inherent_a(text) and roman.endswith("a"):
-        roman = roman[:-1]
-
-    # Collapse trailing double vowels (inherent vowel at word end)
-    # Keep mid-word 'aa' from ā matra (vyapaar, kahaan, gyaan)
-    roman = re.sub(r"aa\b", "a", roman)
-    roman = re.sub(r"ee\b", "i", roman)
-    roman = re.sub(r"oo\b", "u", roman)
-
-    roman = re.sub(r"(.)\1{2,}", r"\1\1", roman)  # max 2 repeats
-    roman = re.sub(r"\s+", " ", roman).strip()
-
-    return roman
+    return "".join(result_parts)
 
 
 def iso_to_hinglish(text: str) -> str:
