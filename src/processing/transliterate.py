@@ -339,8 +339,9 @@ def transliterate_rule_based(text: str) -> str:
                         i += 1
                     else:
                         # Unicode schwa deletion: drop inherent 'a' before a consonant (medial only)
-                        is_word_initial = (i == 0 or token[i - 1] in _DEVANAGARI_INDEPENDENT_VOWELS or token[i - 1] in " ")
-                        if not is_word_initial and next_char in _DEVANAGARI_CONSONANTS:
+                        is_initial = i == 0 or token[i - 1] in _DEVANAGARI_INDEPENDENT_VOWELS
+                        is_initial = is_initial or token[i - 1] == " "
+                        if not is_initial and next_char in _DEVANAGARI_CONSONANTS:
                             result.append(base)
                         else:
                             result.append(base + "a")

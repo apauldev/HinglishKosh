@@ -150,10 +150,8 @@ class TestAnusvaraAssimilation:
         failures = []
         for hindi in DEF_SAMPLE:
             for m in self._NON_LABIAL.finditer(hindi):
-                result = transliterate_rule_based(hindi)
                 # Transliterate just the anusvara to verify it maps to 'n'
                 anusvara_char = m.group(0)[0]  # ं or ँ
-                from src.processing.transliterate import _ANUSVARA_SENTINEL
                 single_result = transliterate_rule_based(anusvara_char + m.group(1))
                 if single_result.startswith("m"):
                     failures.append(

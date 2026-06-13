@@ -471,10 +471,10 @@ class TestManualHinglishBenchmark:
 
         word_pct = (matching_words / total_words) * 100
 
-        print(f"\n=== Manual Hinglish Benchmark ===")
+        print("\n=== Manual Hinglish Benchmark ===")
         print(f"Total words: {total_words}")
         print(f"Matching words: {matching_words} ({word_pct:.1f}%)")
-        print(f"\nSample failures:")
+        print("\nSample failures:")
         for ctx, mw, ew in failures[:10]:
             print(f"  '{mw}' vs '{ew}' (in: {ctx}...)")
 
