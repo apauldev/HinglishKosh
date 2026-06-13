@@ -14,7 +14,7 @@ import pytest
 from src.processing.transliterate import _ANUSVARA_SENTINEL, transliterate_rule_based
 
 # 1500 unique Hindi definitions from the pipeline (input data only, NOT expected values)
-from tests._def_sample import DEF_SAMPLE
+from ._def_sample import DEF_SAMPLE
 
 # ═══════════════════════════════════════════════════════════════
 # Hand-selected regression test: 17 definitions chosen to exercise
