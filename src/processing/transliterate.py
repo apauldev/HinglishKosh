@@ -83,9 +83,11 @@ _DEVANAGARI_CONSONANTS = {
     "फ़": "f",
 }
 
+_ANUSVARA_SENTINEL = "\x01"
+
 _DEVANAGARI_SIGN_MAP = {
-    "ं": "n",
-    "ँ": "n",
+    "ं": _ANUSVARA_SENTINEL,
+    "ँ": _ANUSVARA_SENTINEL,
     "ः": "h",
     "्": "",
     "ॐ": "om",
@@ -186,9 +188,13 @@ def _load_common_words() -> dict[str, str]:
     return _COMMON_WORDS
 
 
-_V_TO_W_EXCEPTIONS = frozenset({
-    "vakeel", "vyapaari", "vyaapaar",
-})
+_V_TO_W_EXCEPTIONS = frozenset(
+    {
+        "vakeel",
+        "vyapaari",
+        "vyaapaar",
+    }
+)
 
 
 # ISO 15919 → Hinglish word-level corrections (applied after rule-based conversion)
@@ -343,6 +349,10 @@ def transliterate_rule_based(text: str) -> str:
     # v → w (Hindi व is pronounced 'w' in most words)
     roman = _apply_v_to_w(roman)
 
+    # Anusvāra assimilation: ṃ → m before labial consonants (p, ph, b, bh, m)
+    roman = re.sub(_ANUSVARA_SENTINEL + r"([pbm])", r"m\1", roman)
+    roman = roman.replace(_ANUSVARA_SENTINEL, "n")
+
     if _should_strip_final_inherent_a(text) and roman.endswith("a"):
         roman = roman[:-1]
 
@@ -379,14 +389,27 @@ def iso_to_hinglish(text: str) -> str:
     result = result.replace("jñ", "gy")
 
     # Step 1: Strip diacritics with smart vowel handling
-    _ISO_DIACRITIC_MAP = [
-        ("ā", "aa"), ("ī", "i"), ("ū", "oo"), ("ē", "e"), ("ō", "o"),
-        ("ṛ", "ri"), ("ṝ", "ri"),
-        ("ṃ", "n"), ("ṁ", "n"), ("ḥ", "h"),
-        ("ṅ", "n"), ("ñ", "n"), ("ṇ", "n"), ("ṭ", "t"), ("ḍ", "d"),
-        ("ṣ", "sh"), ("ś", "sh"), ("ġ", "g"),
+    _iso_diacritic_map = [
+        ("ā", "aa"),
+        ("ī", "i"),
+        ("ū", "oo"),
+        ("ē", "e"),
+        ("ō", "o"),
+        ("ṛ", "ri"),
+        ("ṝ", "ri"),
+        ("ṃ", "n"),
+        ("ṁ", "n"),
+        ("ḥ", "h"),
+        ("ṅ", "n"),
+        ("ñ", "n"),
+        ("ṇ", "n"),
+        ("ṭ", "t"),
+        ("ḍ", "d"),
+        ("ṣ", "sh"),
+        ("ś", "sh"),
+        ("ġ", "g"),
     ]
-    for old, new in _ISO_DIACRITIC_MAP:
+    for old, new in _iso_diacritic_map:
         result = result.replace(old, new)
 
     # Step 2: Handle remaining nasalized vowels
