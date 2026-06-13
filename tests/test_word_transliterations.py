@@ -67,7 +67,7 @@ EXTRA_WORDS_500_PASS = {
     "उल्टा": "ulta",
     "उल्लू": "ullu",
     "ऊँचा": "ooncha",
-    "ऊपर": "oopar",
+    "ऊपर": "upar",
     "एड़ी": "edi",
     "ओले": "ole",
     "कंधा": "kandha",

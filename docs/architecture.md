@@ -512,7 +512,7 @@ hinglish-dict/
 │   └── integration/
 │       ├── aosp_dict_export.py    ← Keyboard format
 │       └── sqlite_export.py       ← FTS5 database
-├── tests/                     ← 701 tests
+├── tests/                     ← 991 tests
 ├── scripts/                   ← Release & distribution
 ├── docs/                      ← Architecture docs
 ├── pyproject.toml

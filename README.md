@@ -4,7 +4,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-701%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-991%20passed-brightgreen)](tests/)
 [![Dataset](https://img.shields.io/badge/dataset-209K%20entries-orange)](#dataset)
 
 ---
@@ -25,7 +25,7 @@ HinglishKosh fills that gap: **200,000+ entries** sourced from WordNet and Wikti
 - **SQLite FTS5** for fast offline search
 - **CLI tool** for quick lookups
 - **Safety filter** — profanity detection and toxicity scoring
-- **701 tests passing** — including 588 common word romanization tests
+- **991 tests passing** — including 588 common word romanization tests
 
 ## Quick Start
 
@@ -243,7 +243,7 @@ hinglish-dict/
 │   ├── api/                # FastAPI REST server
 │   ├── integration/        # AOSP dict export, SQLite FTS5
 │   └── cli.py              # Command-line interface
-├── tests/                  # 701 tests (unit + integration)
+├── tests/                  # 991 tests (unit + integration)
 ├── scripts/
 │   ├── download_data.sh    # Download data sources
 │   ├── release.sh          # Create GitHub release
@@ -274,15 +274,16 @@ python -m pytest tests/test_api.py -v                    # REST API
 
 ### Transliteration Accuracy
 
-The rule-based engine scores **62.4%** against a 500-word hand-curated benchmark (312/500 words match how Hindi speakers actually type). The remaining 188 words have mid-word schwa‑deletion gaps tracked as `xfail` — they'll become passing as `common_words.json` grows. The pipeline test (1,000 words with dictionary overlay) passes at near‑100%.
+The rule-based engine scores **72.4%** against a 500-word hand-curated benchmark (365/500 words match how Hindi speakers actually type). The remaining 135 words have known schwa‑deletion edge cases tracked as `xfail` — they'll become passing as `common_words.json` grows. The pipeline test (1,000 words with dictionary overlay) passes at near‑100%.
 
 | Metric | Value |
 |--------|-------|
-| Engine accuracy (500-word benchmark) | 62.4% (312/500) |
+| Engine accuracy (500-word benchmark) | 72.4% (365/500) |
 | Pipeline accuracy (1,000-word test) | 99%+ (with common_words.json) |
 | Anusvāra → m before labials | ✅ Fixed |
 | v → w in function words | ✅ Via common_words.json |
-| Mid-word schwa deletion | 📋 Known gap (188 words xfail) |
+| Mid-word schwa deletion | ✅ Unicode algorithm implemented |
+| Known gaps remaining | 135 words (edge cases) |
 
 
 
