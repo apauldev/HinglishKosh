@@ -19,7 +19,7 @@ from src.ingestion.wiktionary_loader import load_wiktionary
 from src.ingestion.wordnet_loader import load_english_hindi_linkage, load_wordnet
 from src.processing.merge import assign_ids, merge_dictionaries
 from src.processing.transliterate import (
-    _COMMON_WORDS,
+    _load_common_words,
     iso_to_hinglish,
     transliterate,
     transliterate_rule_based,
@@ -47,13 +47,14 @@ def _ensure_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     2. Transliterate from Devanagari (always preferred over existing roman)
     3. Convert existing roman (ISO 15919) to Hinglish as fallback
     """
+    common = _load_common_words()
     for entry in entries:
         hindi = entry.get("word_hindi", "")
         roman = entry.get("word_hinglish_roman", "")
 
         # First, check if we have a known romanization for this Devanagari word
-        if hindi and hindi in _COMMON_WORDS:
-            entry["word_hinglish_roman"] = _COMMON_WORDS[hindi]
+        if hindi and hindi in common:
+            entry["word_hinglish_roman"] = common[hindi]
         elif hindi:
             # Always prefer transliterating from Devanagari
             entry["word_hinglish_roman"] = transliterate(hindi)

@@ -448,14 +448,14 @@ Python 3.9+ with `from __future__ import annotations` for postponed evaluation.
 
 ---
 
-## 7. Test Structure (701 tests)
+## 7. Test Structure (2,684 tests)
 
 | Test File | Scope | Count (approx) |
 |---|---|---|
-| `test_1000_words.py` | Common word romanization, no-diacritic checks, pattern validation | 588 |
+| `test_word_transliterations.py` | Rule engine unit tests, 1500-word parametrized tests, diacritic checks, pattern validation | 1,580 |
+| `test_def_transliterations.py` | 1500 definition transliterations with rule-based linguistic validation | 504 |
 | `test_lookup.py` | Hindi→English lookup, Hindi→roman verification, structure | Large |
 | `test_api.py` | REST API endpoint tests | Integration |
-| `test_transliterate.py` | Rule-based and ISO conversion unit tests | Unit |
 | `test_merge.py` | Merge/dedup logic | Unit |
 | `test_safety.py` | Profanity/toxicity/severity scoring | Unit |
 | `test_wordnet_loader.py` | WordNet TSV parsing | Unit |

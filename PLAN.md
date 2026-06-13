@@ -213,7 +213,8 @@ hinglish-dict/
 │   │   └── sqlite_export.py
 │   └── cli.py
 ├── tests/
-│   ├── test_1000_words.py
+│   ├── test_word_transliterations.py
+│   ├── test_def_transliterations.py
 │   ├── test_lookup.py
 │   ├── test_api.py
 │   └── ...

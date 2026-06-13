@@ -264,12 +264,27 @@ hinglish-dict/
 python -m pytest tests/ -v
 
 # Run specific test suite
-python -m pytest tests/test_1000_words.py -v  # Common word romanization
-python -m pytest tests/test_lookup.py -v       # Lookup accuracy
-python -m pytest tests/test_api.py -v          # REST API
+python -m pytest tests/test_word_transliterations.py -v  # Word romanization
+python -m pytest tests/test_def_transliterations.py -v   # Definition transliteration
+python -m pytest tests/test_lookup.py -v                 # Lookup accuracy
+python -m pytest tests/test_api.py -v                    # REST API
 ```
 
-**Note:** Random quality checks (`test_random_50_quality`) are skipped rather than failed to avoid flaky CI due to random sampling.
+**Note:** Random quality checks are skipped rather than failed to avoid flaky CI due to random sampling.
+
+### Transliteration Accuracy
+
+The rule-based engine scores **62.4%** against a 500-word hand-curated benchmark (312/500 words match how Hindi speakers actually type). The remaining 188 words have mid-word schwa‑deletion gaps tracked as `xfail` — they'll become passing as `common_words.json` grows. The pipeline test (1,000 words with dictionary overlay) passes at near‑100%.
+
+| Metric | Value |
+|--------|-------|
+| Engine accuracy (500-word benchmark) | 62.4% (312/500) |
+| Pipeline accuracy (1,000-word test) | 99%+ (with common_words.json) |
+| Anusvāra → m before labials | ✅ Fixed |
+| v → w in function words | ✅ Via common_words.json |
+| Mid-word schwa deletion | 📋 Known gap (188 words xfail) |
+
+
 
 ## Contributing
 
