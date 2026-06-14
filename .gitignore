@@ -29,11 +29,15 @@ env/
 .DS_Store
 Thumbs.db
 
+# Tooling
+.reasonix/
+
 # ML models (downloaded at runtime)
 models/
 
 # Secrets
 .env
+.dev.vars
 *.key
 .commandcode/taste/taste.md
 

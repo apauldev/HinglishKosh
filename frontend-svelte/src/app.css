@@ -1,0 +1,225 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-devanagari: 'Noto Sans Devanagari', sans-serif;
+  --font-hindi-entry: 'Noto Sans Devanagari', sans-serif;
+  --font-display-word: 'Inter', sans-serif;
+  --font-definition-num: 'Inter', sans-serif;
+  --font-label-caps: 'Inter', sans-serif;
+  --font-body-md: 'Inter', sans-serif;
+  --font-headline-md: 'Inter', sans-serif;
+  --font-body-lg: 'Inter', sans-serif;
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-container: var(--primary-container);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-error-container: var(--error-container);
+  --color-on-error: var(--on-error);
+  --color-surface-bright: var(--surface-bright);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  /* Font size tokens */
+  --font-size-display-word: 3.5rem;
+  --font-size-display-word-mobile: 2.25rem;
+  --font-size-hindi-entry: 2.625rem;
+  --font-size-label-caps: 0.75rem;
+  --font-size-body-md: 1rem;
+  --font-size-headline-md: 1.5rem;
+  --font-size-body-lg: 1.125rem;
+  --font-size-definition-num: 0.875rem;
+}
+
+:root {
+  --radius: 0.75rem;
+  /* Light theme — cool blue-tinted palette (matches original HinglishKosh) */
+  --background: #f8f9ff;
+  --foreground: #0b1c30;
+  --card: #ffffff;
+  --card-foreground: #0b1c30;
+  --popover: #ffffff;
+  --popover-foreground: #0b1c30;
+  /* Indigo Primary (from old app: #4648d4) */
+  --primary: #4648d4;
+  --primary-foreground: #ffffff;
+  --primary-container: #6063ee;
+  /* Slate Secondary */
+  --secondary: #565e74;
+  --secondary-foreground: #ffffff;
+  --secondary-container: #dae2fd;
+  --on-secondary-container: #5c647a;
+  /* Muted */
+  --muted: #c7c4d7;
+  --muted-foreground: #6b7280;
+  /* Violet Accent */
+  --accent: #7c3aed;
+  --accent-foreground: #ffffff;
+  --destructive: #ba1a1a;
+  --border: #e7e0ec;
+  --input: #ffffff;
+  --ring: #4648d4;
+  --outline: #767586;
+  --outline-variant: #c7c4d7;
+  --on-surface-variant: #464554;
+  --surface-container-high: #dce9ff;
+  --surface-container-low: #eff4ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container: #e5eeff;
+  --surface-bright: #f8f9ff;
+  --error-container: #ffdad6;
+  --on-error: #ffffff;
+}
+
+.dark {
+  --background: #1d1b20;
+  --foreground: #e6e1e5;
+  --card: #2b2930;
+  --card-foreground: #e6e1e5;
+  --popover: #2b2930;
+  --popover-foreground: #e6e1e5;
+  --primary: #c0c1ff;
+  --primary-foreground: #2f2ebe;
+  --primary-container: #6063ee;
+  --secondary: #c0c1ff;
+  --secondary-foreground: #1d1b20;
+  --secondary-container: #c0c1ff;
+  --on-secondary-container: #cac4d0;
+  --muted: #49454f;
+  --muted-foreground: #cac4d0;
+  --accent: #b4a7ff;
+  --accent-foreground: #1d1b20;
+  --destructive: #f2b8b5;
+  --border: #49454f;
+  --input: #2b2930;
+  --ring: #c0c1ff;
+  --outline: #767586;
+  --outline-variant: #49454f;
+  --on-surface-variant: #cac4d0;
+  --surface-container-high: #3a3840;
+  --surface-container-low: #2b2930;
+  --surface-container-lowest: #1d1b20;
+  --surface-container: #332f36;
+  --surface-bright: #1d1b20;
+  --error-container: #93000a;
+  --on-error: #ffffff;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+  }
+
+  mark {
+    background-color: #fef3c7 !important; /* amber-100 */
+    color: #451a03 !important; /* amber-950 */
+    font-weight: 800 !important;
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+
+  .dark mark {
+    background-color: rgba(129, 140, 248, 0.3) !important; /* primary/30 */
+    color: #e0e7ff !important; /* primary-foreground */
+    font-weight: 800 !important;
+  }
+}
+
+/* ─── Custom Utilities ─── */
+
+.glass {
+  @apply bg-white/70 backdrop-blur-md dark:bg-slate-900/70;
+}
+
+.shadow-premium {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 4px 10px -5px rgba(0, 0, 0, 0.02);
+}
+
+.dark .shadow-premium {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3), 0 4px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* ─── Theme transitions ─── */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ─── Staggered fade-in animations ─── */
+.stagger-fade-in > * {
+  opacity: 0;
+  animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.stagger-fade-in > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-fade-in > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-fade-in > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-fade-in > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-fade-in > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-fade-in > *:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Hero Grid Pattern ─── */
+.hero-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.6;
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(to bottom, white, transparent);
+  pointer-events: none;
+}
+.dark .hero-pattern {
+  opacity: 0.15;
+}
+
+/* ─── Hover lift utility ─── */
+.hover-lift {
+  transition: all 0.3s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 4px 10px -5px rgba(0, 0, 0, 0.02);
+}

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://hinglishkosh.com/sitemap.xml
