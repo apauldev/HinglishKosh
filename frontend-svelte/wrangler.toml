@@ -1,0 +1,9 @@
+name = "hinglishkosh"
+pages_build_output_dir = ".svelte-kit/cloudflare"
+compatibility_date = "2026-06-12"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hinglishkosh"
+database_id = "d22598b7-8cbe-4c04-8534-afd578777f1c"

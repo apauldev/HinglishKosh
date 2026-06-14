@@ -1,0 +1,48 @@
+{
+  "name": "hinglishkosh",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "dev:local": "wrangler pages dev .svelte-kit/cloudflare --compatibility-flag=nodejs_compat",
+    "db:setup": "bash scripts/setup-local-db.sh",
+    "build": "vite build",
+    "preview": "vite preview",
+    "preview:local": "wrangler pages dev .svelte-kit/cloudflare --compatibility-flag=nodejs_compat",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
+    "lint": "prettier --check . && eslint .",
+    "lint:fix": "prettier --write . && eslint . --fix",
+    "format": "prettier --write .",
+    "deploy": "wrangler pages deploy .svelte-kit/cloudflare --project-name=hinglishkosh",
+    "deploy:prod": "wrangler pages deploy .svelte-kit/cloudflare --project-name=hinglishkosh --branch=main"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260613.1",
+    "@eslint/js": "^10.0.1",
+    "@sveltejs/adapter-cloudflare": "^4.0.0",
+    "@sveltejs/kit": "^2.0.0",
+    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "@types/node": "^25.9.3",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-svelte": "^3.0.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.0.0",
+    "prettier-plugin-svelte": "^4.0.0",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.61.0",
+    "vite": "^5.0.0",
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "clsx": "^2.0.0",
+    "mode-watcher": "^1.0.0",
+    "tailwind-merge": "^3.0.0",
+    "tailwindcss": "^4.0.0"
+  },
+  "type": "module"
+}
