@@ -148,7 +148,17 @@
   }
 
   mark {
-    @apply bg-primary-container text-primary font-semibold rounded-sm px-0.5;
+    background-color: #fef3c7 !important; /* amber-100 */
+    color: #451a03 !important; /* amber-950 */
+    font-weight: 800 !important;
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+
+  .dark mark {
+    background-color: rgba(129, 140, 248, 0.3) !important; /* primary/30 */
+    color: #e0e7ff !important; /* primary-foreground */
+    font-weight: 800 !important;
   }
 }
 

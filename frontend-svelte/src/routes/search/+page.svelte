@@ -16,7 +16,7 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-6 py-12 md:px-12">
-  <div class="mb-12 max-w-3xl">
+  <div class="mb-12 max-w-3xl relative z-30">
     <SearchForm query={data.query} />
   </div>
 

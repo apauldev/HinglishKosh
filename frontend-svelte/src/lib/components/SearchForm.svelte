@@ -102,31 +102,26 @@
   }}
 />
 
-<form onsubmit={handleSubmit} class="relative w-full" role="search" aria-label="Search the dictionary">
-  <div class="relative flex items-center bg-card rounded-full shadow-sm transition-shadow duration-300 focus-within:shadow-lg focus-within:shadow-black/5 {compact ? 'h-10' : 'h-14'}">
-    <span class="material-symbols-outlined {compact ? 'ml-4 text-lg' : 'ml-5 text-xl'} text-muted-foreground">search</span>
+<form onsubmit={handleSubmit} class="relative w-full group" role="search">
+  <div class="relative flex items-center bg-card border border-border rounded-full transition-all duration-300 shadow-sm focus-within:shadow-premium focus-within:border-primary/30 {compact ? 'h-11' : 'h-14 md:h-16'}">
+    <span class="material-symbols-outlined {compact ? 'ml-4 text-lg' : 'ml-5 text-2xl'} text-muted-foreground transition-colors group-focus-within:text-primary">search</span>
     <input
       id={compact ? 'search-input-compact' : 'search-input'}
       type="search"
-      placeholder={compact ? 'Search...' : 'Search 209K+ words...'}
+      placeholder={compact ? 'Search dictionary...' : 'Search for words in English, Hindi, or Hinglish...'}
       value={searchQuery}
       oninput={handleInput}
       onkeydown={handleKeydown}
       onfocus={handleFocus}
       onblur={handleBlur}
-      class="w-full bg-transparent border-none focus:ring-0 outline-none {compact ? 'px-3 text-sm' : 'px-4 text-base'} text-foreground placeholder:text-muted-foreground"
+      class="w-full bg-transparent border-none focus:ring-0 outline-none {compact ? 'px-3 text-sm' : 'px-5 text-lg'} text-foreground placeholder:text-muted-foreground/50 font-medium"
       autocomplete="off"
-      aria-autocomplete="list"
-      aria-controls="suggestions-list"
-      aria-expanded={showSuggestions && suggestions.length > 0}
-      aria-activedescendant={selectedIndex >= 0 ? `suggestion-${selectedIndex}` : undefined}
-      role="combobox"
     />
     {#if !compact}
-      <div class="pr-2 hidden md:flex items-center">
+      <div class="pr-3 hidden md:flex items-center gap-2">
         <button
           type="submit"
-          class="px-5 h-9 rounded-full bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+          class="px-8 h-10 md:h-11 rounded-full bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-all active:scale-95 shadow-md shadow-primary/10"
         >
           Search
         </button>
@@ -136,29 +131,41 @@
 
   {#if showSuggestions && suggestions.length > 0}
     <div
-      id="suggestions-list"
-      role="listbox"
-      class="absolute top-full left-0 right-0 z-[100] mt-2 overflow-hidden rounded-xl border border-border bg-white dark:bg-[#1d1b20] shadow-xl"
+      class="absolute top-full left-0 right-0 z-[9999] mt-3 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
     >
-      <div class="max-h-[360px] overflow-y-auto">
+      <div class="max-h-[380px] overflow-y-auto py-2">
         {#each suggestions as suggestion, i}
           <a
             href="/word/{suggestion.word_hinglish_roman}"
-            role="option"
-            id="suggestion-{i}"
-            aria-selected={i === selectedIndex}
-            class="flex items-center justify-between px-5 py-3 transition-colors {i === selectedIndex ? 'bg-primary text-white font-bold' : 'text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'}"
+            class="flex items-center justify-between px-5 py-3.5 transition-all {i === selectedIndex ? 'bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'}"
             onclick={() => {
               showSuggestions = false;
             }}
           >
-            <span class="text-sm font-semibold">{@html highlightMatch(suggestion.word_hinglish_roman, searchQuery)}</span>
-            <span class="font-devanagari text-base text-muted-foreground">{@html highlightMatch(suggestion.word_hindi, searchQuery)}</span>
+            <div class="flex flex-col">
+              <span class="text-base font-bold text-foreground group-hover:text-primary transition-colors"
+                >{@html highlightMatch(suggestion.word_hinglish_roman, searchQuery)}</span
+              >
+              <span class="text-[10px] font-bold tracking-widest text-muted-foreground/60 uppercase mt-0.5">ROMAN</span>
+            </div>
+            <div class="flex flex-col items-end">
+              <span class="font-devanagari text-lg text-primary/80"
+                >{@html highlightMatch(suggestion.word_hindi, searchQuery)}</span
+              >
+              <span class="text-[10px] font-bold tracking-widest text-muted-foreground/60 uppercase mt-0.5">HINDI</span>
+            </div>
           </a>
           {#if i < suggestions.length - 1}
-            <div class="mx-4 h-px bg-border/50"></div>
+            <div class="mx-5 h-px bg-border/50"></div>
           {/if}
         {/each}
+      </div>
+      <div class="bg-slate-50 dark:bg-slate-900/50 px-5 py-2.5 border-t border-border flex justify-between items-center">
+        <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Results for "{searchQuery}"</span>
+        <div class="flex gap-3">
+           <span class="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase"><kbd class="px-1 bg-card border border-border rounded">↓</kbd> Navigate</span>
+           <span class="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase"><kbd class="px-1 bg-card border border-border rounded">↵</kbd> Select</span>
+        </div>
       </div>
     </div>
   {/if}

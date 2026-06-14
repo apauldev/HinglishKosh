@@ -68,12 +68,12 @@
           </span>
         </h1>
 
-        <div class="relative w-full max-w-3xl stagger-fade-in" style="animation-delay: 0.2s">
-          <div class="mb-10">
+        <div class="relative w-full max-w-3xl stagger-fade-in z-[100]" style="animation-delay: 0.2s">
+          <div class="mb-10 relative z-[110]">
             <SearchForm />
           </div>
 
-          <div class="flex flex-wrap justify-center gap-3 items-center">
+          <div class="flex flex-wrap justify-center gap-3 items-center relative z-10">
             <span class="text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase mr-2">
               QUICK SEARCH:
             </span>
