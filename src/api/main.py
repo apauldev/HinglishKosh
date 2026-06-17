@@ -172,10 +172,24 @@ def create_app(data_dir: Path = Path("data/output")) -> Any:
         ),
         limit: int = Query(10, ge=1, le=100),
     ):
+        query_lower = word.lower().strip()
+        # O(1) short-circuit on exact index match (full dictionary only).
+        if not safe and query_lower in _index:
+            entry = _index[query_lower]
+            if entry.get("confidence_score", 0) >= min_confidence:
+                return {
+                    "query": word,
+                    "results": [entry],
+                    "count": 1,
+                }
+
         data = _safe_dictionary if safe else _dictionary
-        use_index = not safe  # index is built from full dict only
+        use_index = not safe
         results = _fuzzy_search(
-            word, limit=limit, dictionary=data, use_index=use_index,
+            word,
+            limit=limit,
+            dictionary=data,
+            use_index=use_index,
             min_confidence=min_confidence,
         )
 

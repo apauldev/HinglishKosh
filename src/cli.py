@@ -14,7 +14,8 @@ import logging
 import sqlite3
 import sys
 from pathlib import Path
-from typing import Optional
+
+from src.integration.sqlite_export import sanitize_fts5_query
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 def _ensure_sqlite_cache(
     data_dir: Path = Path("data/output"),
     safe: bool = False,
-    cache_dir: Optional[Path] = None,
+    cache_dir: Path | None = None,
 ) -> Path:
     """Create SQLite cache if it doesn't exist, return path to .db file."""
     if cache_dir is None:
@@ -142,14 +143,17 @@ def cmd_lookup(args):
     results = [dict(row) for row in cursor.fetchall()]
 
     if not results:
-        # Fallback: partial match
+        # Fallback: partial match (escape LIKE metacharacters in user input)
+        escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
         cursor.execute(
             """SELECT * FROM dictionary
-               WHERE (LOWER(word_hindi) LIKE ? OR LOWER(word_hinglish_roman) LIKE ?)
+               WHERE (LOWER(word_hindi) LIKE ? ESCAPE '\\'
+                      OR LOWER(word_hinglish_roman) LIKE ? ESCAPE '\\')
                AND confidence_score >= ?
                ORDER BY confidence_score DESC
                LIMIT ?""",
-            (f"%{query}%", f"%{query}%", min_conf, args.limit),
+            (pattern, pattern, min_conf, args.limit),
         )
         results = [dict(row) for row in cursor.fetchall()]
 
@@ -170,7 +174,11 @@ def cmd_lookup(args):
         confidence = entry.get("confidence_score", 0)
         print(f"  Source: {source} | Confidence: {confidence}")
         if entry.get("toxicity_flags"):
-            flags = entry["toxicity_flags"].split(",") if isinstance(entry["toxicity_flags"], str) else entry["toxicity_flags"]
+            flags = (
+                entry["toxicity_flags"].split(",")
+                if isinstance(entry["toxicity_flags"], str)
+                else entry["toxicity_flags"]
+            )
             print(f"  Flags: {', '.join(flags)}")
 
     print(f"\n{'─' * 50}")
@@ -188,6 +196,7 @@ def cmd_search(args):
 
     query = args.query.lower().strip()
     min_conf = getattr(args, "min_confidence", 0.0)
+    sanitized = sanitize_fts5_query(query)
 
     # FTS5 search with confidence ordering
     cursor.execute(
@@ -197,7 +206,7 @@ def cmd_search(args):
            WHERE dictionary_fts MATCH ? AND d.confidence_score >= ?
            ORDER BY rank, d.confidence_score DESC
            LIMIT ?""",
-        (query, min_conf, args.limit),
+        (sanitized, min_conf, args.limit),
     )
     results = [dict(row) for row in cursor.fetchall()]
 
@@ -251,7 +260,7 @@ def cmd_stats(args):
 def main():
     parser = argparse.ArgumentParser(
         prog="hinglish-dict",
-        description="HinglishKosh (हिंग्लिशकोश) — Hinglish-English Dictionary CLI",
+        description="HinglishKosh (हिंग्लिशकोश) — Hinglish-English Dictionary CLI",  # noqa: E501
     )
     parser.add_argument("--data-dir", default="data/output", help="Directory with dictionary data")
     parser.add_argument(

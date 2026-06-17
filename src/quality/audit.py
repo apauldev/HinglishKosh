@@ -17,17 +17,14 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import re
 import sqlite3
 import sys
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from src.processing.transliterate import (
     _load_common_words,
-    iso_to_hinglish,
     transliterate_rule_based,
 )
 from src.safety.profanity_list import ProfanityMatcher, _normalize_text
@@ -675,71 +672,82 @@ def audit_transliteration(dictionary: list[dict] | None = None) -> dict:
 # ─── Audit 2: Merge Quality ─────────────────────────────────────────────────
 
 def audit_merge_quality(dictionary: list[dict]) -> dict:
-    """Audit WordNet/Wiktionary merge: overlap, conflicts, quality."""
+    """Audit post-dedup merge quality: coverage, conflicts, completeness.
+
+    Post-dedup every entry has exactly one primary source, but merged entries
+    carry a `sources` list with all contributors. We audit on that signal
+    instead of word_hindi overlap (which is always zero post-dedup).
+    """
     wn_entries = [e for e in dictionary if e.get("source") == "WordNet"]
     wk_entries = [e for e in dictionary if e.get("source") == "Wiktionary"]
 
-    # Count unique headwords per source
-    wn_words = {e["word_hindi"] for e in wn_entries}
-    wk_words = {e["word_hindi"] for e in wk_entries}
-    shared_words = wn_words & wk_words
+    # Entries that were actually merged from multiple sources
+    merged = [e for e in dictionary if len(e.get("sources", [])) > 1]
 
-    # For shared words, check definition overlap
-    wn_by_word: dict[str, list[dict]] = defaultdict(list)
-    wk_by_word: dict[str, list[dict]] = defaultdict(list)
-    for e in wn_entries:
-        wn_by_word[e["word_hindi"]].append(e)
-    for e in wk_entries:
-        wk_by_word[e["word_hindi"]].append(e)
+    # Source-pair distribution (e.g., how many came from WordNet+Wiktionary)
+    pair_counts: Counter = Counter()
+    for e in merged:
+        pair = tuple(sorted(set(e.get("sources", []))))
+        pair_counts[pair] += 1
 
-    same_def = 0
-    diff_def = 0
-    conflict_details = []
+    # Completeness on merged entries: do they carry both Hindi and English defs?
+    has_hi = sum(1 for e in merged if e.get("definition_hi"))
+    has_en = sum(1 for e in merged if e.get("definition_en"))
+    has_both = sum(1 for e in merged if e.get("definition_hi") and e.get("definition_en"))
 
-    for word in shared_words:
-        wn_defs = {e.get("definition", "") for e in wn_by_word[word]}
-        wk_defs = {e.get("definition", "") for e in wk_by_word[word]}
-        if wn_defs & wk_defs:
-            same_def += 1
-        else:
-            diff_def += 1
-            if len(conflict_details) < 50:
-                conflict_details.append({
-                    "word": word,
-                    "wn_def": list(wn_defs)[:3],
-                    "wk_def": list(wk_defs)[:3],
-                })
+    # Definition conflict: the surviving primary def differs in language from
+    # what one side contributed. Look for entries where definition_hi and
+    # definition_en are textually identical (suggests one side never had a
+    # distinct gloss and the other was duplicated into both fields).
+    identical_lang_fields = 0
+    for e in merged:
+        hi = e.get("definition_hi", "")
+        en = e.get("definition_en", "")
+        if hi and en and hi == en:
+            identical_lang_fields += 1
+
+    # Conflict samples: merged entries with very short or empty primary def
+    # but the surviving entry clearly came from only one side.
+    thin_merges = [
+        {
+            "word": e.get("word_hindi", ""),
+            "roman": e.get("word_hinglish_roman", ""),
+            "sources": e.get("sources", []),
+            "definition": e.get("definition", "")[:120],
+            "definition_hi": (e.get("definition_hi") or "")[:80],
+            "definition_en": (e.get("definition_en") or "")[:80],
+        }
+        for e in merged
+        if len(e.get("definition", "")) < 20
+    ][:30]
 
     results = {
-        "wordnet": {"count": len(wn_entries), "unique_headwords": len(wn_words)},
-        "wiktionary": {"count": len(wk_entries), "unique_headwords": len(wk_words)},
-        "overlap": {
-            "shared_headwords": len(shared_words),
-            "same_definition": same_def,
-            "different_definition": diff_def,
-            "conflict_pct": round(diff_def * 100 / max(len(shared_words), 1), 1),
+        "totals": {
+            "wordnet": len(wn_entries),
+            "wiktionary": len(wk_entries),
+        },
+        "merge_coverage": {
+            "merged_entries": len(merged),
+            "merged_pct": round(len(merged) * 100 / max(len(dictionary), 1), 1),
+            "source_pair_distribution": {
+                ", ".join(pair): count for pair, count in pair_counts.most_common()
+            },
+        },
+        "completeness": {
+            "has_definition_hi": has_hi,
+            "has_definition_en": has_en,
+            "has_both": has_both,
+            "hi_pct": round(has_hi * 100 / max(len(merged), 1), 1),
+            "en_pct": round(has_en * 100 / max(len(merged), 1), 1),
+            "both_pct": round(has_both * 100 / max(len(merged), 1), 1),
+        },
+        "potential_issues": {
+            "identical_hi_and_en": identical_lang_fields,
+            "thin_definition_count": len(thin_merges),
         },
     }
-    if conflict_details:
-        results["conflict_examples"] = conflict_details
-
-    # Check: does _find_matching_entry (fuzzy) catch anything merge misses?
-    # Simulate fuzzy matching on the conflicts
-    from rapidfuzz import fuzz
-    fuzzy_catch = 0
-    for word in list(shared_words)[:200]:
-        wn_defs = [e.get("definition", "") for e in wn_by_word[word]]
-        wk_defs = [e.get("definition", "") for e in wk_by_word[word]]
-        for wd in wn_defs:
-            for kd in wk_defs:
-                if wd != kd and fuzz.ratio(wd.lower(), kd.lower()) >= 85:
-                    fuzzy_catch += 1
-                    break
-
-    results["fuzzy_potential"] = {
-        "sample_size": min(len(shared_words), 200),
-        "fuzzy_matches_above_85": fuzzy_catch,
-    }
+    if thin_merges:
+        results["potential_issues"]["thin_examples"] = thin_merges
 
     return results
 
@@ -766,7 +774,6 @@ def audit_safety_filter(dictionary: list[dict]) -> dict:
 
     # 3b. Find profane words in definitions NOT caught by current filter
     false_negatives = []
-    checked_words = set()
 
     for entry in dictionary:
         roman = entry.get("word_hinglish_roman", "").lower()
@@ -956,7 +963,10 @@ def run_audit(args: argparse.Namespace) -> int:
                         ld.get("diacritics_in_roman", 0), ld.get("diacritic_pct", 0),
                     )
                     if ld.get("missing_roman"):
-                        logger.info("  WARNING: %d entries have empty romanization!", ld["missing_roman"])
+                        logger.info(
+                            "  WARNING: %d entries have empty romanization!",
+                            ld["missing_roman"],
+                        )
 
     # ── Merge Quality ──
     if run_all or "merge" in audits_to_run:
@@ -967,32 +977,29 @@ def run_audit(args: argparse.Namespace) -> int:
             logger.info("  SKIP: No dictionary data available")
         else:
             result = audit_merge_quality(dictionary)
-            wn = result["wordnet"]
-            wk = result["wiktionary"]
-            ov = result["overlap"]
+            totals = result["totals"]
+            cov = result["merge_coverage"]
+            comp = result["completeness"]
+            issues = result["potential_issues"]
             logger.info(
-                "  WordNet: %d entries (%d unique headwords)",
-                wn["count"], wn["unique_headwords"],
+                "  WordNet: %d entries, Wiktionary: %d entries",
+                totals["wordnet"], totals["wiktionary"],
             )
             logger.info(
-                "  Wiktionary: %d entries (%d unique headwords)",
-                wk["count"], wk["unique_headwords"],
+                "  Merged entries: %d (%s%% of total)",
+                cov["merged_entries"], cov["merged_pct"],
+            )
+            logger.info("  Source pair distribution:")
+            for pair, count in cov["source_pair_distribution"].items():
+                logger.info("    %s: %d", pair, count)
+            logger.info(
+                "  Definition completeness on merged entries: hi=%s%%, en=%s%%, both=%s%%",
+                comp["hi_pct"], comp["en_pct"], comp["both_pct"],
             )
             logger.info(
-                "  Overlap: %d shared headwords — %d same def, %d different (%s%%)",
-                ov["shared_headwords"], ov["same_definition"],
-                ov["different_definition"], ov["conflict_pct"],
+                "  Issues: %d entries with identical hi/en fields, %d with thin definitions",
+                issues["identical_hi_and_en"], issues["thin_definition_count"],
             )
-            fp = result.get("fuzzy_potential", {})
-            if fp:
-                logger.info(
-                    "  Fuzzy potential (sample %d): %d matches above 85%% threshold",
-                    fp["sample_size"], fp["fuzzy_matches_above_85"],
-                )
-                if fp["fuzzy_matches_above_85"] > 0:
-                    logger.info(
-                        "  → These are candidates for fuzzy merging (currently skipped by exact-only merge)"
-                    )
 
     # ── Safety Filter ──
     if run_all or "safety" in audits_to_run:
@@ -1042,9 +1049,11 @@ def run_audit(args: argparse.Namespace) -> int:
                 "Score", "Count", "% of Total", "Avg Def Len", "% Example", "Top Source",
             )
             for b in result["buckets"]:
-                top_src = list(b["source_distribution"].keys())[0] if b["source_distribution"] else ""
+                top_src = (
+                    list(b["source_distribution"].keys())[0] if b["source_distribution"] else ""
+                )
                 logger.info(
-                    "    %-8s %-8d %-18s %-16s %-14s %s",
+                    "    %-8s %-8d %-18s %-16s %-14s %s",  # noqa: E501
                     b["bucket"], b["count"], f"{b['pct_of_total']}%",
                     b["avg_def_length"], f"{b['pct_with_example']}%", top_src,
                 )
@@ -1070,7 +1079,7 @@ def main():
     parser.add_argument(
         "--audit",
         default="",
-        help="Comma-separated audits to run: transliteration,merge,safety,confidence (default: all)",
+        help="Comma-separated audits: transliteration,merge,safety,confidence (default: all)",
     )
     parser.add_argument(
         "--data-dir",

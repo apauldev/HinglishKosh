@@ -17,8 +17,8 @@ from typing import Any
 from src.ingestion.supplemental_loader import load_supplemental
 from src.ingestion.wiktionary_loader import load_wiktionary
 from src.ingestion.wordnet_loader import load_english_hindi_linkage, load_wordnet
-from src.processing.merge import assign_ids, merge_dictionaries
 from src.integration.sqlite_export import export_sqlite_fts
+from src.processing.merge import assign_ids, merge_dictionaries
 from src.processing.transliterate import (
     _load_common_words,
     iso_to_hinglish,
@@ -132,22 +132,28 @@ def _merge_entries(primary: dict[str, Any], secondary: dict[str, Any]) -> dict[s
     primary["sources"] = combined_sources
     primary["source"] = combined_sources[0]
 
-    # Merge definitions: classify both, fill in hi/en fields
+    # Merge definitions: capture Devanagari content for definition_hi,
+    # Latin content for definition_en. Falls back to word_hindi when neither
+    # side's definition text has Devanagari.
     p_def = primary.get("definition", "")
     s_def = secondary.get("definition", "")
-    p_lang = _definition_lang(p_def)
-    s_lang = _definition_lang(s_def)
 
-    if p_lang in ("hi", "mixed") or s_lang in ("hi", "mixed"):
-        if p_lang in ("hi", "mixed"):
+    p_has_dev = _has_devanagari(p_def)
+    s_has_dev = _has_devanagari(s_def)
+    if "definition_hi" not in primary:
+        if p_has_dev:
             primary["definition_hi"] = p_def
-        elif "definition_hi" not in primary:
+        elif s_has_dev:
             primary["definition_hi"] = s_def
+        elif _has_devanagari(primary.get("word_hindi", "")):
+            primary["definition_hi"] = primary["word_hindi"]
 
-    if p_lang in ("en", "mixed") or s_lang in ("en", "mixed"):
-        if p_lang in ("en", "mixed"):
+    p_has_latin = any(c.isascii() and c.isalpha() for c in p_def)
+    s_has_latin = any(c.isascii() and c.isalpha() for c in s_def)
+    if "definition_en" not in primary:
+        if p_has_latin:
             primary["definition_en"] = p_def
-        elif "definition_en" not in primary:
+        elif s_has_latin:
             primary["definition_en"] = s_def
 
     # Merge synsets
@@ -277,7 +283,7 @@ def _compute_confidence(entry: dict[str, Any]) -> float:
     base = {"WordNet": 0.95, "Wiktionary": 0.85}.get(source, 0.70)
 
     method = entry.get("_romanization_method", "rule")
-    roman_mult = {"common_word": 1.0, "iso": 0.92, "rule": 0.75}.get(method, 0.85)
+    roman_mult = {"common_word": 1.0, "iso": 0.92, "rule": 0.75}.get(method, 0.75)
 
     sources = entry.get("sources", [source])
     num_sources = len(set(sources))
@@ -389,10 +395,6 @@ def run_pipeline(
     # Classify definitions and fill hi/en fields
     merged = _classify_definitions(merged)
 
-    # Compute per-entry confidence scores
-    logger.info("=== Computing Confidence Scores ===")
-    merged = _compute_all_confidence(merged)
-
     # === Stage 5: Safety Filter ===
     if not skip_safety:
         logger.info("=== Running Safety Filter ===")
@@ -406,6 +408,10 @@ def run_pipeline(
         logger.info("Safety filter complete: %d entries flagged", flagged_count)
     else:
         logger.info("=== Safety Filter Skipped ===")
+
+    # === Stage 5b: Confidence Scoring (after safety filter so severity floor fires) ===
+    logger.info("=== Computing Confidence Scores ===")
+    merged = _compute_all_confidence(merged)
 
     # === Stage 6: Output ===
     logger.info("=== Generating Output ===")
@@ -530,8 +536,8 @@ def run_pipeline(
 
     # Export SQLite FTS5 database for fast CLI/API startup
     db_file = output_dir / "hinglish_dictionary_v1.db"
-    export_sqlite_fts(merged, db_file)
-    logger.info("Exported %d entries to SQLite FTS5: %s", len(safe_entries), db_file)
+    db_count = export_sqlite_fts(merged, db_file)
+    logger.info("Exported %d entries to SQLite FTS5: %s", db_count, db_file)
 
     # Print summary
     multi_src = sum(1 for e in merged if len(e.get("sources", [e.get("source", "")])) > 1)
@@ -545,7 +551,7 @@ def run_pipeline(
     print(f"  Safe entries:       {len(safe_entries):>8,} (severity < 0.5)")
     print(f"  Excluded:           {len(excluded_words):>8,} (severity >= 0.5)")
     print(f"  Multi-source:       {multi_src:>8,}")
-    print(f"  Definitions:")
+    print("  Definitions:")
     print(f"    Hindi-only:       {hi_count:>8,}")
     print(f"    English-only:     {en_count:>8,}")
     print(f"    Mixed:            {mixed_count:>8,}")
@@ -553,7 +559,7 @@ def run_pipeline(
     print(f"  Wiktionary:         {sources.get('Wiktionary', 0):>8,}")
     supp_count = sum(v for k, v in sources.items() if k.startswith("supplemental"))
     print(f"  Supplemental:       {supp_count:>8,}")
-    print(f"  Confidence:")
+    print("  Confidence:")
     for bucket in sorted(confidence_buckets.keys()):
         count = confidence_buckets[bucket]
         bar = "█" * max(1, count * 40 // len(merged))

@@ -8,8 +8,8 @@ definition completeness signals.
 import pytest
 
 from src.processing.pipeline import (
-    _compute_confidence,
     _compute_all_confidence,
+    _compute_confidence,
     _strip_internal_fields,
 )
 
@@ -136,6 +136,19 @@ class TestComputeConfidence:
         }
         score = _compute_confidence(entry)
         assert 0.6 < score < 0.8
+
+    def test_unknown_romanization_matches_rule_score(self):
+        # Bug 8 regression: unknown method must not score higher than "rule"
+        unknown = {
+            "source": "WordNet", "sources": ["WordNet"],
+            "definition_en": "water",
+        }
+        rule = {
+            "source": "WordNet", "sources": ["WordNet"],
+            "_romanization_method": "rule",
+            "definition_en": "water",
+        }
+        assert _compute_confidence(unknown) == _compute_confidence(rule)
 
     def test_score_is_capped_at_1(self):
         entry = {

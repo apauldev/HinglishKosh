@@ -40,14 +40,21 @@ class TestDefinitionLang:
 class TestEntryQualityScore:
     def test_english_definition_scores_highest(self):
         en_entry = {"definition": "water", "source": "Wiktionary"}
-        hi_entry = {"definition": "एक पेय पदार्थ", "source": "WordNet", "example_sentence": "पानी पिओ"}
+        hi_entry = {
+            "definition": "एक पेय पदार्थ",
+            "source": "WordNet",
+            "example_sentence": "पानी पिओ",
+        }
         en_score = _entry_quality_score(en_entry)
         hi_score = _entry_quality_score(hi_entry)
         assert en_score > hi_score, "English def should score higher than Hindi-only"
 
     def test_longer_definition_scores_higher(self):
         short = {"definition": "water", "source": "Wiktionary"}
-        long = {"definition": "a colorless transparent liquid that forms the seas and rivers", "source": "Wiktionary"}
+        long = {
+            "definition": "a colorless transparent liquid that forms the seas and rivers",
+            "source": "Wiktionary",
+        }
         assert _entry_quality_score(long) > _entry_quality_score(short)
 
     def test_wordnet_bonus(self):
@@ -116,6 +123,34 @@ class TestMergeEntries:
         result = _merge_entries(primary, secondary)
         assert result["synsets"] == ["iwn-1"]
 
+    def test_english_only_both_sides_falls_back_to_word_hindi(self):
+        # Bug 2 regression: both defs classify as English but word_hindi is Devanagari.
+        primary = {
+            "word_hindi": "स्वयंभू",
+            "definition": "a self-existent being",
+            "source": "WordNet",
+        }
+        secondary = {
+            "word_hindi": "स्वयंभू",
+            "definition": "self-existent being, esp. Brahma",
+            "source": "Wiktionary",
+        }
+        result = _merge_entries(primary, secondary)
+        assert result["definition_hi"] == "स्वयंभू"
+        assert result["definition_en"] == "a self-existent being"
+
+    def test_english_only_no_devanagari_headword(self):
+        # When neither side has Devanagari anywhere, definition_hi stays unset.
+        primary = {"word_hindi": "test", "definition": "trial", "source": "WordNet"}
+        secondary = {
+            "word_hindi": "test",
+            "definition": "examination",
+            "source": "Wiktionary",
+        }
+        result = _merge_entries(primary, secondary)
+        assert "definition_hi" not in result
+        assert result["definition_en"] == "trial"
+
     def test_merges_examples(self):
         primary = {"definition": "पानी", "source": "WordNet", "all_examples": ["पानी पिओ"]}
         secondary = {"definition": "water", "source": "Wiktionary", "all_examples": ["drink water"]}
@@ -125,13 +160,25 @@ class TestMergeEntries:
 
     def test_fills_missing_example_sentence(self):
         primary = {"definition": "पानी", "source": "WordNet"}
-        secondary = {"definition": "water", "source": "Wiktionary", "example_sentence": "drink water"}
+        secondary = {
+            "definition": "water",
+            "source": "Wiktionary",
+            "example_sentence": "drink water",
+        }
         result = _merge_entries(primary, secondary)
         assert result["example_sentence"] == "drink water"
 
     def test_keeps_existing_example_sentence(self):
-        primary = {"definition": "पानी", "source": "WordNet", "example_sentence": "पानी पिओ"}
-        secondary = {"definition": "water", "source": "Wiktionary", "example_sentence": "drink water"}
+        primary = {
+            "definition": "पानी",
+            "source": "WordNet",
+            "example_sentence": "पानी पिओ",
+        }
+        secondary = {
+            "definition": "water",
+            "source": "Wiktionary",
+            "example_sentence": "drink water",
+        }
         result = _merge_entries(primary, secondary)
         assert result["example_sentence"] == "पानी पिओ"
 
@@ -159,7 +206,12 @@ class TestDeduplicateByRoman:
 
     def test_deduplicates_by_roman(self):
         entries = [
-            {"word_hinglish_roman": "paani", "definition": "पानी", "source": "WordNet", "example_sentence": "पानी पिओ"},
+            {
+                "word_hinglish_roman": "paani",
+                "definition": "पानी",
+                "source": "WordNet",
+                "example_sentence": "पानी पिओ",
+            },
             {"word_hinglish_roman": "paani", "definition": "water", "source": "Wiktionary"},
         ]
         result = _deduplicate_by_roman(entries)
@@ -167,7 +219,12 @@ class TestDeduplicateByRoman:
 
     def test_prefers_english_definition_on_dedup(self):
         entries = [
-            {"word_hinglish_roman": "paani", "definition": "पानी", "source": "WordNet", "example_sentence": "पानी पिओ"},
+            {
+                "word_hinglish_roman": "paani",
+                "definition": "पानी",
+                "source": "WordNet",
+                "example_sentence": "पानी पिओ",
+            },
             {"word_hinglish_roman": "paani", "definition": "water", "source": "Wiktionary"},
         ]
         result = _deduplicate_by_roman(entries)
@@ -175,8 +232,18 @@ class TestDeduplicateByRoman:
 
     def test_merges_definitions_on_dedup(self):
         entries = [
-            {"word_hinglish_roman": "paani", "definition": "पानी", "source": "WordNet", "synsets": ["iwn-1"]},
-            {"word_hinglish_roman": "paani", "definition": "water", "source": "Wiktionary", "synsets": ["wk-1"]},
+            {
+                "word_hinglish_roman": "paani",
+                "definition": "पानी",
+                "source": "WordNet",
+                "synsets": ["iwn-1"],
+            },
+            {
+                "word_hinglish_roman": "paani",
+                "definition": "water",
+                "source": "Wiktionary",
+                "synsets": ["wk-1"],
+            },
         ]
         result = _deduplicate_by_roman(entries)
         assert result[0].get("definition_hi") == "पानी"
@@ -193,9 +260,24 @@ class TestDeduplicateByRoman:
 
     def test_three_way_merge(self):
         entries = [
-            {"word_hinglish_roman": "paani", "definition": "पानी", "source": "WordNet", "synsets": ["iwn-1"]},
-            {"word_hinglish_roman": "paani", "definition": "water", "source": "Wiktionary", "synsets": ["wk-1"]},
-            {"word_hinglish_roman": "paani", "definition": "पानी (water)", "source": "Supplemental", "synsets": ["sup-1"]},
+            {
+                "word_hinglish_roman": "paani",
+                "definition": "पानी",
+                "source": "WordNet",
+                "synsets": ["iwn-1"],
+            },
+            {
+                "word_hinglish_roman": "paani",
+                "definition": "water",
+                "source": "Wiktionary",
+                "synsets": ["wk-1"],
+            },
+            {
+                "word_hinglish_roman": "paani",
+                "definition": "पानी (water)",
+                "source": "Supplemental",
+                "synsets": ["sup-1"],
+            },
         ]
         result = _deduplicate_by_roman(entries)
         assert len(result) == 1
