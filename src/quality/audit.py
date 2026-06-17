@@ -550,6 +550,7 @@ XFAIL_WORDS_500 = {
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
+
 def has_devanagari(text: str) -> bool:
     return any("\u0900" <= c <= "\u097f" for c in text)
 
@@ -572,10 +573,7 @@ def _classify_romanization_error(actual: str, expected: str) -> str:
         return "none"
 
     vw_issues = any(a == "v" and e == "w" or a == "w" and e == "v" for _, a, e in diff_positions)
-    vowel_issues = any(
-        a in "aeiou" and e in "aeiou" and a != e
-        for _, a, e in diff_positions
-    )
+    vowel_issues = any(a in "aeiou" and e in "aeiou" and a != e for _, a, e in diff_positions)
 
     if vw_issues and not vowel_issues:
         return "v_w"
@@ -587,6 +585,7 @@ def _classify_romanization_error(actual: str, expected: str) -> str:
 
 
 # ─── Audit 1: Transliteration ───────────────────────────────────────────────
+
 
 def audit_transliteration(dictionary: list[dict] | None = None) -> dict:
     """Audit transliteration accuracy on known benchmarks and live data."""
@@ -613,12 +612,14 @@ def audit_transliteration(dictionary: list[dict] | None = None) -> dict:
             fail_count += 1
             error_type = _classify_romanization_error(actual, expected)
             fail_by_type[error_type] += 1
-            benchmark_errors.append({
-                "hindi": hindi,
-                "expected": expected,
-                "actual": actual,
-                "error_type": error_type,
-            })
+            benchmark_errors.append(
+                {
+                    "hindi": hindi,
+                    "expected": expected,
+                    "actual": actual,
+                    "error_type": error_type,
+                }
+            )
         if hindi in common:
             common_word_coverage += 1
             if common[hindi] == expected:
@@ -670,6 +671,7 @@ def audit_transliteration(dictionary: list[dict] | None = None) -> dict:
 
 
 # ─── Audit 2: Merge Quality ─────────────────────────────────────────────────
+
 
 def audit_merge_quality(dictionary: list[dict]) -> dict:
     """Audit post-dedup merge quality: coverage, conflicts, completeness.
@@ -754,6 +756,7 @@ def audit_merge_quality(dictionary: list[dict]) -> dict:
 
 # ─── Audit 3: Safety Filter ─────────────────────────────────────────────────
 
+
 def audit_safety_filter(dictionary: list[dict]) -> dict:
     """Audit profanity coverage: false negatives, coverage gaps."""
     profanity_matcher = ProfanityMatcher()
@@ -790,15 +793,17 @@ def audit_safety_filter(dictionary: list[dict]) -> dict:
 
         for w in all_text_words:
             if w in wordlist and w != head_norm:
-                false_negatives.append({
-                    "word_hindi": entry.get("word_hindi", ""),
-                    "word_hinglish_roman": roman,
-                    "profanity_word": w,
-                    "source": entry.get("source", ""),
-                    "severity_score": entry.get("severity_score", 0),
-                    "definition_snippet": definition[:120] if definition else "",
-                    "example_snippet": example[:120] if example else "",
-                })
+                false_negatives.append(
+                    {
+                        "word_hindi": entry.get("word_hindi", ""),
+                        "word_hinglish_roman": roman,
+                        "profanity_word": w,
+                        "source": entry.get("source", ""),
+                        "severity_score": entry.get("severity_score", 0),
+                        "definition_snippet": definition[:120] if definition else "",
+                        "example_snippet": example[:120] if example else "",
+                    }
+                )
                 break
 
     results["false_negatives"] = {
@@ -809,9 +814,21 @@ def audit_safety_filter(dictionary: list[dict]) -> dict:
     # 3c. Check if any known Hindi profanity variants are missing
     # Common spelling variations that should probably be in the list
     suggested_words = [
-        "bhen", "bahan", "maa ki", "teri", "mard", "kamina",
-        "kamine", "sala", "saala", "harami", "haramipan",
-        "kutti", "kuttiya", "ullu", "ullu ka pattha",
+        "bhen",
+        "bahan",
+        "maa ki",
+        "teri",
+        "mard",
+        "kamina",
+        "kamine",
+        "sala",
+        "saala",
+        "harami",
+        "haramipan",
+        "kutti",
+        "kuttiya",
+        "ullu",
+        "ullu ka pattha",
     ]
     missing = [w for w in suggested_words if w not in wordlist]
     results["suggested_additions"] = {
@@ -824,6 +841,7 @@ def audit_safety_filter(dictionary: list[dict]) -> dict:
 
 
 # ─── Audit 4: Confidence Faithfulness ────────────────────────────────────────
+
 
 def audit_confidence(dictionary: list[dict]) -> dict:
     """Check if confidence scores actually correlate with quality signals."""
@@ -842,26 +860,26 @@ def audit_confidence(dictionary: list[dict]) -> dict:
         has_example = sum(1 for e in entries if e.get("example_sentence"))
         has_toxicity = sum(1 for e in entries if e.get("toxicity_flags"))
         sources = Counter(e.get("source", "unknown") for e in entries)
-        has_dev_def = sum(
-            1 for e in entries
-            if has_devanagari(e.get("definition", ""))
-        )
+        has_dev_def = sum(1 for e in entries if has_devanagari(e.get("definition", "")))
         completeness = sum(
-            1 for e in entries
+            1
+            for e in entries
             if e.get("definition") and len(e["definition"]) > 10 and e.get("example_sentence")
         )
 
-        analysis.append({
-            "bucket": bucket,
-            "count": n,
-            "pct_of_total": round(n * 100 / len(dictionary), 1),
-            "avg_def_length": round(sum(def_lengths) / n, 1) if n else 0,
-            "pct_with_example": round(has_example * 100 / n, 1),
-            "pct_with_toxicity": round(has_toxicity * 100 / n, 1),
-            "pct_dev_def": round(has_dev_def * 100 / n, 1),
-            "pct_complete": round(completeness * 100 / n, 1),
-            "source_distribution": dict(sources.most_common(5)),
-        })
+        analysis.append(
+            {
+                "bucket": bucket,
+                "count": n,
+                "pct_of_total": round(n * 100 / len(dictionary), 1),
+                "avg_def_length": round(sum(def_lengths) / n, 1) if n else 0,
+                "pct_with_example": round(has_example * 100 / n, 1),
+                "pct_with_toxicity": round(has_toxicity * 100 / n, 1),
+                "pct_dev_def": round(has_dev_def * 100 / n, 1),
+                "pct_complete": round(completeness * 100 / n, 1),
+                "source_distribution": dict(sources.most_common(5)),
+            }
+        )
 
     # Check if confidence correlates with being in common_words
     common = _load_common_words()
@@ -885,6 +903,7 @@ def audit_confidence(dictionary: list[dict]) -> dict:
 
 
 # ─── Main ────────────────────────────────────────────────────────────────────
+
 
 def load_dictionary(data_dir: str | Path) -> list[dict] | None:
     """Load the dictionary from JSON or SQLite."""
@@ -931,7 +950,9 @@ def run_audit(args: argparse.Namespace) -> int:
         bm = result["benchmark"]
         logger.info(
             "  Benchmark (500 words): %d/%d = %s%%",
-            bm["pass"], bm["total"], bm["accuracy_pct"],
+            bm["pass"],
+            bm["total"],
+            bm["accuracy_pct"],
         )
         logger.info("  Failures by type:")
         for err_type, count in bm["fail_by_type"].items():
@@ -939,7 +960,9 @@ def run_audit(args: argparse.Namespace) -> int:
         cw = bm["common_words_in_benchmark"]
         logger.info(
             "  Common words in benchmark: %d/%d correct (%s%%)",
-            cw["correct"], cw["total"], cw["coverage_pct"],
+            cw["correct"],
+            cw["total"],
+            cw["coverage_pct"],
         )
 
         if not args.suppress_examples and result.get("error_examples"):
@@ -947,7 +970,10 @@ def run_audit(args: argparse.Namespace) -> int:
             for ex in result["error_examples"][:15]:
                 logger.info(
                     "    [%s] %s → expected='%s' actual='%s'",
-                    ex["error_type"], ex["hindi"], ex["expected"], ex["actual"],
+                    ex["error_type"],
+                    ex["hindi"],
+                    ex["expected"],
+                    ex["actual"],
                 )
 
         # Now audit live data if available (pass dict)
@@ -960,7 +986,8 @@ def run_audit(args: argparse.Namespace) -> int:
                 if ld:
                     logger.info(
                         "\n  Live data: %d entries with diacritics in roman (%s%%)",
-                        ld.get("diacritics_in_roman", 0), ld.get("diacritic_pct", 0),
+                        ld.get("diacritics_in_roman", 0),
+                        ld.get("diacritic_pct", 0),
                     )
                     if ld.get("missing_roman"):
                         logger.info(
@@ -983,22 +1010,27 @@ def run_audit(args: argparse.Namespace) -> int:
             issues = result["potential_issues"]
             logger.info(
                 "  WordNet: %d entries, Wiktionary: %d entries",
-                totals["wordnet"], totals["wiktionary"],
+                totals["wordnet"],
+                totals["wiktionary"],
             )
             logger.info(
                 "  Merged entries: %d (%s%% of total)",
-                cov["merged_entries"], cov["merged_pct"],
+                cov["merged_entries"],
+                cov["merged_pct"],
             )
             logger.info("  Source pair distribution:")
             for pair, count in cov["source_pair_distribution"].items():
                 logger.info("    %s: %d", pair, count)
             logger.info(
                 "  Definition completeness on merged entries: hi=%s%%, en=%s%%, both=%s%%",
-                comp["hi_pct"], comp["en_pct"], comp["both_pct"],
+                comp["hi_pct"],
+                comp["en_pct"],
+                comp["both_pct"],
             )
             logger.info(
                 "  Issues: %d entries with identical hi/en fields, %d with thin definitions",
-                issues["identical_hi_and_en"], issues["thin_definition_count"],
+                issues["identical_hi_and_en"],
+                issues["thin_definition_count"],
             )
 
     # ── Safety Filter ──
@@ -1023,15 +1055,18 @@ def run_audit(args: argparse.Namespace) -> int:
             for ex in fn.get("examples", [])[:10]:
                 logger.info(
                     "    '%s' contains '%s' (severity=%s, source=%s)",
-                    ex["word_hinglish_roman"], ex["profanity_word"],
-                    ex["severity_score"], ex["source"],
+                    ex["word_hinglish_roman"],
+                    ex["profanity_word"],
+                    ex["severity_score"],
+                    ex["source"],
                 )
 
             sa = result.get("suggested_additions", {})
             if sa.get("missing"):
                 logger.info(
                     "  %d suggested additions not in wordlist: %s",
-                    len(sa["missing"]), ", ".join(sa["missing"][:10]),
+                    len(sa["missing"]),
+                    ", ".join(sa["missing"][:10]),
                 )
 
     # ── Confidence Faithfulness ──
@@ -1046,7 +1081,12 @@ def run_audit(args: argparse.Namespace) -> int:
             logger.info("  Confidence score distribution:")
             logger.info(
                 "    %-8s %-8s %-18s %-16s %-14s %s",
-                "Score", "Count", "% of Total", "Avg Def Len", "% Example", "Top Source",
+                "Score",
+                "Count",
+                "% of Total",
+                "Avg Def Len",
+                "% Example",
+                "Top Source",
             )
             for b in result["buckets"]:
                 top_src = (
@@ -1054,14 +1094,19 @@ def run_audit(args: argparse.Namespace) -> int:
                 )
                 logger.info(
                     "    %-8s %-8d %-18s %-16s %-14s %s",  # noqa: E501
-                    b["bucket"], b["count"], f"{b['pct_of_total']}%",
-                    b["avg_def_length"], f"{b['pct_with_example']}%", top_src,
+                    b["bucket"],
+                    b["count"],
+                    f"{b['pct_of_total']}%",
+                    b["avg_def_length"],
+                    f"{b['pct_with_example']}%",
+                    top_src,
                 )
 
             cov = result["romanization_coverage"]
             logger.info(
                 "\n  Romanization: %d/%d entries overridden by common_words.json (%s%%)",
-                cov["in_common_words_json"], cov["not_in_common_words_json"],
+                cov["in_common_words_json"],
+                cov["not_in_common_words_json"],
                 cov["pct_overridden"],
             )
 

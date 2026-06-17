@@ -167,9 +167,7 @@ def create_app(data_dir: Path = Path("data/output")) -> Any:
     async def lookup(
         word: str = Query(..., description="Word to look up (Hindi or Roman)"),
         safe: bool = Query(False, description="If true, use pre-filtered safe dataset"),
-        min_confidence: float = Query(
-            0.0, ge=0.0, le=1.0, description="Minimum confidence score"
-        ),
+        min_confidence: float = Query(0.0, ge=0.0, le=1.0, description="Minimum confidence score"),
         limit: int = Query(10, ge=1, le=100),
     ):
         query_lower = word.lower().strip()
@@ -203,14 +201,15 @@ def create_app(data_dir: Path = Path("data/output")) -> Any:
     async def search(
         q: str = Query(..., description="Search query"),
         safe: bool = Query(False, description="If true, use pre-filtered safe dataset"),
-        min_confidence: float = Query(
-            0.0, ge=0.0, le=1.0, description="Minimum confidence score"
-        ),
+        min_confidence: float = Query(0.0, ge=0.0, le=1.0, description="Minimum confidence score"),
         limit: int = Query(20, ge=1, le=100),
     ):
         data = _safe_dictionary if safe else _dictionary
         results = _fuzzy_search(
-            q, limit=limit, dictionary=data, min_confidence=min_confidence,
+            q,
+            limit=limit,
+            dictionary=data,
+            min_confidence=min_confidence,
         )
 
         return {

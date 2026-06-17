@@ -85,16 +85,22 @@ class TestComputeConfidence:
 
     def test_iso_method_scores_between_common_and_rule(self):
         common_word = {
-            "source": "WordNet", "sources": ["WordNet"],
-            "_romanization_method": "common_word", "definition_en": "water",
+            "source": "WordNet",
+            "sources": ["WordNet"],
+            "_romanization_method": "common_word",
+            "definition_en": "water",
         }
         iso = {
-            "source": "WordNet", "sources": ["WordNet"],
-            "_romanization_method": "iso", "definition_en": "water",
+            "source": "WordNet",
+            "sources": ["WordNet"],
+            "_romanization_method": "iso",
+            "definition_en": "water",
         }
         rule = {
-            "source": "WordNet", "sources": ["WordNet"],
-            "_romanization_method": "rule", "definition_en": "water",
+            "source": "WordNet",
+            "sources": ["WordNet"],
+            "_romanization_method": "rule",
+            "definition_en": "water",
         }
         cw = _compute_confidence(common_word)
         is_ = _compute_confidence(iso)
@@ -103,15 +109,19 @@ class TestComputeConfidence:
 
     def test_toxic_entries_get_floored(self):
         clean = {
-            "source": "WordNet", "sources": ["WordNet"],
+            "source": "WordNet",
+            "sources": ["WordNet"],
             "_romanization_method": "common_word",
-            "definition_hi": "पानी", "definition_en": "water",
+            "definition_hi": "पानी",
+            "definition_en": "water",
             "severity_score": 0.0,
         }
         toxic = {
-            "source": "WordNet", "sources": ["WordNet"],
+            "source": "WordNet",
+            "sources": ["WordNet"],
             "_romanization_method": "common_word",
-            "definition_hi": "पानी", "definition_en": "water",
+            "definition_hi": "पानी",
+            "definition_en": "water",
             "severity_score": 1.0,
         }
         clean_score = _compute_confidence(clean)
@@ -131,7 +141,8 @@ class TestComputeConfidence:
 
     def test_unknown_romanization_defaults_to_rule(self):
         entry = {
-            "source": "WordNet", "sources": ["WordNet"],
+            "source": "WordNet",
+            "sources": ["WordNet"],
             "definition_en": "water",
         }
         score = _compute_confidence(entry)
@@ -140,11 +151,13 @@ class TestComputeConfidence:
     def test_unknown_romanization_matches_rule_score(self):
         # Bug 8 regression: unknown method must not score higher than "rule"
         unknown = {
-            "source": "WordNet", "sources": ["WordNet"],
+            "source": "WordNet",
+            "sources": ["WordNet"],
             "definition_en": "water",
         }
         rule = {
-            "source": "WordNet", "sources": ["WordNet"],
+            "source": "WordNet",
+            "sources": ["WordNet"],
             "_romanization_method": "rule",
             "definition_en": "water",
         }
@@ -152,9 +165,11 @@ class TestComputeConfidence:
 
     def test_score_is_capped_at_1(self):
         entry = {
-            "source": "WordNet", "sources": ["WordNet", "Wiktionary"],
+            "source": "WordNet",
+            "sources": ["WordNet", "Wiktionary"],
             "_romanization_method": "common_word",
-            "definition_hi": "पानी", "definition_en": "water",
+            "definition_hi": "पानी",
+            "definition_en": "water",
             "example_sentence": "example",
         }
         score = _compute_confidence(entry)
@@ -162,7 +177,8 @@ class TestComputeConfidence:
 
     def test_score_is_rounded_to_4_decimal_places(self):
         entry = {
-            "source": "WordNet", "sources": ["WordNet"],
+            "source": "WordNet",
+            "sources": ["WordNet"],
             "_romanization_method": "rule",
             "definition_en": "w",
         }

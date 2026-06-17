@@ -51,6 +51,7 @@ SAMPLE_ENTRIES = [
 class TestBuildIndex:
     def _build(self, entries):
         from src.api.main import _build_index
+
         return _build_index(entries)
 
     def test_builds_index_from_entries(self):
@@ -133,9 +134,7 @@ class TestFuzzySearch:
         import src.api.main as api_module
 
         api_module._index = {}
-        results = _fuzzy_search(
-            "आग", dictionary=api_module._dictionary, use_index=False
-        )
+        results = _fuzzy_search("आग", dictionary=api_module._dictionary, use_index=False)
         assert len(results) == 1
         assert results[0]["word_hinglish_roman"] == "aag"
 
