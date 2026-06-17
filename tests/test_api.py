@@ -46,11 +46,40 @@ SAMPLE_ENTRIES = [
 ]
 
 
+class TestBuildIndex:
+    def _build(self, entries):
+        from src.api.main import _build_index
+        return _build_index(entries)
+
+    def test_builds_index_from_entries(self):
+        idx = self._build(SAMPLE_ENTRIES)
+        assert idx["नमस्ते"]["word_hindi"] == "नमस्ते"
+        assert idx["namaste"]["word_hindi"] == "नमस्ते"
+        assert idx["paani"]["word_hindi"] == "पानी"
+        assert "aag" in idx
+
+    def test_skips_empty_strings(self):
+        idx = self._build([{"word_hindi": "", "word_hinglish_roman": "test"}])
+        assert "" not in idx
+
+    def test_roman_and_hindi_both_indexed(self):
+        entries = [
+            {"word_hindi": "aaa", "word_hinglish_roman": "bbb", "id": "1"},
+            {"word_hindi": "ccc", "word_hinglish_roman": "ddd", "id": "2"},
+        ]
+        idx = self._build(entries)
+        assert idx["aaa"]["id"] == "1"
+        assert idx["bbb"]["id"] == "1"
+        assert idx["ccc"]["id"] == "2"
+        assert idx["ddd"]["id"] == "2"
+
+
 class TestFuzzySearch:
     def setup_method(self):
         import src.api.main as api_module
 
         api_module._dictionary = SAMPLE_ENTRIES
+        api_module._index = api_module._build_index(SAMPLE_ENTRIES)
 
     def test_exact_match_hindi(self):
         results = _fuzzy_search("नमस्ते")
@@ -73,6 +102,40 @@ class TestFuzzySearch:
     def test_limit(self):
         results = _fuzzy_search("a", limit=1)
         assert len(results) <= 1
+
+    def test_confidence_tiebreaking(self):
+        results = _fuzzy_search("a")
+        # Results should be ordered by score desc, then confidence desc
+        if len(results) >= 2:
+            confs = [e.get("confidence_score", 0) for e in results]
+            for i in range(len(confs) - 1):
+                assert confs[i] >= confs[i + 1]
+
+    def test_min_confidence_filters_low(self):
+        results = _fuzzy_search("paani", min_confidence=0.9)
+        assert len(results) == 0  # paani has confidence 0.85
+
+    def test_min_confidence_passes_high(self):
+        results = _fuzzy_search("नमस्ते", min_confidence=0.9)
+        assert len(results) == 1  # namaste has confidence 0.95
+
+    def test_index_fallback_when_empty(self):
+        import src.api.main as api_module
+
+        api_module._index = {}  # Clear index
+        results = _fuzzy_search("नमस्ते", dictionary=api_module._dictionary)
+        assert len(results) == 1
+        assert results[0]["word_hinglish_roman"] == "namaste"
+
+    def test_safe_dict_linear_scan(self):
+        import src.api.main as api_module
+
+        api_module._index = {}
+        results = _fuzzy_search(
+            "आग", dictionary=api_module._dictionary, use_index=False
+        )
+        assert len(results) == 1
+        assert results[0]["word_hinglish_roman"] == "aag"
 
 
 class TestAppCreation:

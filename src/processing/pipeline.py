@@ -18,6 +18,7 @@ from src.ingestion.supplemental_loader import load_supplemental
 from src.ingestion.wiktionary_loader import load_wiktionary
 from src.ingestion.wordnet_loader import load_english_hindi_linkage, load_wordnet
 from src.processing.merge import assign_ids, merge_dictionaries
+from src.integration.sqlite_export import export_sqlite_fts
 from src.processing.transliterate import (
     _load_common_words,
     iso_to_hinglish,
@@ -64,6 +65,8 @@ def _ensure_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     1. _COMMON_WORDS lookup for the Devanagari word
     2. Transliterate from Devanagari (always preferred over existing roman)
     3. Convert existing roman (ISO 15919) to Hinglish as fallback
+
+    Sets _romanization_method on each entry for downstream confidence scoring.
     """
     common = _load_common_words()
     for entry in entries:
@@ -73,15 +76,19 @@ def _ensure_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         # First, check if we have a known romanization for this Devanagari word
         if hindi and hindi in common:
             entry["word_hinglish_roman"] = common[hindi]
+            entry["_romanization_method"] = "common_word"
         elif hindi:
             # Always prefer transliterating from Devanagari
             entry["word_hinglish_roman"] = transliterate(hindi)
+            entry["_romanization_method"] = "rule"
         elif roman and not _has_devanagari(roman):
             # No Hindi word, but has roman → convert ISO to Hinglish
             entry["word_hinglish_roman"] = iso_to_hinglish(roman)
+            entry["_romanization_method"] = "iso"
         elif roman:
             # Has Devanagari in roman field → transliterate
             entry["word_hinglish_roman"] = transliterate(roman)
+            entry["_romanization_method"] = "rule"
     return entries
 
 
@@ -259,6 +266,61 @@ def _classify_definitions(entries: list[dict[str, Any]]) -> list[dict[str, Any]]
     return entries
 
 
+def _compute_confidence(entry: dict[str, Any]) -> float:
+    """Compute a per-entry confidence score based on source, romanization,
+    multi-source confirmation, and definition completeness.
+
+    Formula: base × romanization_mult × source_boost × completeness_mult
+    Capped at [0, 1]. Severity >= 0.5 floors the score to <= 0.3.
+    """
+    source = entry.get("source", "")
+    base = {"WordNet": 0.95, "Wiktionary": 0.85}.get(source, 0.70)
+
+    method = entry.get("_romanization_method", "rule")
+    roman_mult = {"common_word": 1.0, "iso": 0.92, "rule": 0.75}.get(method, 0.85)
+
+    sources = entry.get("sources", [source])
+    num_sources = len(set(sources))
+    source_boost = 1.0 + (0.03 * (num_sources - 1))
+
+    defn_hi = entry.get("definition_hi", "")
+    defn_en = entry.get("definition_en", "")
+    has_example = bool(entry.get("example_sentence"))
+
+    completeness_mult = 1.0
+    if defn_hi and defn_en:
+        completeness_mult = 1.05
+    elif defn_en:
+        completeness_mult = 1.03
+    elif defn_hi and has_example:
+        completeness_mult = 1.02
+
+    score = base * roman_mult * source_boost * completeness_mult
+
+    if entry.get("severity_score", 0) >= 0.5:
+        score = min(score, 0.3)
+
+    return round(min(max(score, 0.0), 1.0), 4)
+
+
+def _compute_all_confidence(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Compute and set confidence_score for every entry."""
+    for entry in entries:
+        entry["confidence_score"] = _compute_confidence(entry)
+    return entries
+
+
+_INTERNAL_FIELDS = frozenset({"_romanization_method"})
+
+
+def _strip_internal_fields(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Remove internal-only fields before writing output."""
+    for entry in entries:
+        for field in _INTERNAL_FIELDS:
+            entry.pop(field, None)
+    return entries
+
+
 def run_pipeline(
     data_dir: Path = Path("data/raw"),
     output_dir: Path = Path("data/output"),
@@ -327,6 +389,10 @@ def run_pipeline(
     # Classify definitions and fill hi/en fields
     merged = _classify_definitions(merged)
 
+    # Compute per-entry confidence scores
+    logger.info("=== Computing Confidence Scores ===")
+    merged = _compute_all_confidence(merged)
+
     # === Stage 5: Safety Filter ===
     if not skip_safety:
         logger.info("=== Running Safety Filter ===")
@@ -344,6 +410,9 @@ def run_pipeline(
     # === Stage 6: Output ===
     logger.info("=== Generating Output ===")
 
+    # Strip internal-only fields before writing
+    merged = _strip_internal_fields(merged)
+
     # Compute stats
     sources = {}
     pos_counts = {}
@@ -351,6 +420,7 @@ def run_pipeline(
     hi_only = 0
     en_only = 0
     mixed = 0
+    confidence_buckets: dict[str, int] = {}
     for entry in merged:
         src = entry.get("source", "unknown")
         sources[src] = sources.get(src, 0) + 1
@@ -365,6 +435,9 @@ def run_pipeline(
             en_only += 1
         else:
             mixed += 1
+        c = entry.get("confidence_score", 0)
+        bucket = f"{c:.2f}"
+        confidence_buckets[bucket] = confidence_buckets.get(bucket, 0) + 1
 
     # Build safe dataset (filter toxic entries)
     safe_entries = [e for e in merged if e.get("severity_score", 0) < 0.5]
@@ -455,6 +528,11 @@ def run_pipeline(
         )
     logger.info("Wrote %d excluded entries to %s", len(excluded_words), exclude_file)
 
+    # Export SQLite FTS5 database for fast CLI/API startup
+    db_file = output_dir / "hinglish_dictionary_v1.db"
+    export_sqlite_fts(merged, db_file)
+    logger.info("Exported %d entries to SQLite FTS5: %s", len(safe_entries), db_file)
+
     # Print summary
     multi_src = sum(1 for e in merged if len(e.get("sources", [e.get("source", "")])) > 1)
     hi_count = sum(1 for e in merged if e.get("definition_lang") == "hi")
@@ -475,6 +553,11 @@ def run_pipeline(
     print(f"  Wiktionary:         {sources.get('Wiktionary', 0):>8,}")
     supp_count = sum(v for k, v in sources.items() if k.startswith("supplemental"))
     print(f"  Supplemental:       {supp_count:>8,}")
+    print(f"  Confidence:")
+    for bucket in sorted(confidence_buckets.keys()):
+        count = confidence_buckets[bucket]
+        bar = "█" * max(1, count * 40 // len(merged))
+        print(f"    {bucket}: {count:>7,} {bar}")
     print(f"  Output:             {output_file}")
     print(f"  Safe output:        {safe_file}")
     print(f"  Excluded:           {exclude_file}")
