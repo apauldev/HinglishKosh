@@ -1,8 +1,8 @@
 """FastAPI REST API for HinglishKosh dictionary lookups.
 
 Endpoints:
-    GET /lookup?word={word}&safe=true
-    GET /search?q={query}&limit=20
+    GET /lookup?word={word}&safe=true&min_confidence=0.5
+    GET /search?q={query}&limit=20&safe=true&min_confidence=0.5
     GET /stats
     GET /health
 """
@@ -20,11 +20,25 @@ logger = logging.getLogger(__name__)
 _dictionary: list[dict[str, Any]] = []
 _safe_dictionary: list[dict[str, Any]] = []
 _metadata: dict[str, Any] = {}
+_index: dict[str, dict[str, Any]] = {}
+
+
+def _build_index(entries: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Build hash index for O(1) exact lookup by hindi or roman."""
+    idx: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        hindi = entry.get("word_hindi", "").lower()
+        roman = entry.get("word_hinglish_roman", "").lower()
+        if hindi:
+            idx[hindi] = entry
+        if roman and roman != hindi:
+            idx[roman] = entry
+    return idx
 
 
 def _load_dictionary(data_dir: Path = Path("data/output")) -> None:
     """Load dictionary data from JSON files."""
-    global _dictionary, _safe_dictionary, _metadata
+    global _dictionary, _safe_dictionary, _metadata, _index
 
     # Load full dataset
     json_file = data_dir / "hinglish_dictionary_v1.json"
@@ -33,7 +47,13 @@ def _load_dictionary(data_dir: Path = Path("data/output")) -> None:
             data = json.load(f)
         _metadata = data.get("meta", {})
         _dictionary = data.get("dictionary", [])
-        logger.info("Loaded %d entries from %s", len(_dictionary), json_file)
+        _index = _build_index(_dictionary)
+        logger.info(
+            "Loaded %d entries from %s (index: %d keys)",
+            len(_dictionary),
+            json_file,
+            len(_index),
+        )
 
     # Load safe dataset
     safe_file = data_dir / "hinglish_dictionary_v1_safe.json"
@@ -45,9 +65,17 @@ def _load_dictionary(data_dir: Path = Path("data/output")) -> None:
 
 
 def _fuzzy_search(
-    query: str, limit: int = 20, dictionary: list[dict[str, Any]] | None = None
+    query: str,
+    limit: int = 20,
+    dictionary: list[dict[str, Any]] | None = None,
+    use_index: bool = True,
+    min_confidence: float = 0.0,
 ) -> list[dict[str, Any]]:
-    """Simple fuzzy search across headwords and definitions."""
+    """Fuzzy search across headwords and definitions, with confidence tiebreaking.
+
+    Uses hash index for O(1) exact lookup, then linear scan for partial matches.
+    Within each score tier, higher confidence_score entries rank first.
+    """
     if dictionary is None:
         dictionary = _dictionary
 
@@ -55,29 +83,43 @@ def _fuzzy_search(
     if not query_lower:
         return []
 
-    results = []
+    results: list[tuple[int, float, dict[str, Any]]] = []
+
+    # O(1) exact lookup via hash index
+    index = _index if _index else _build_index(dictionary)
+    if use_index and query_lower in index:
+        entry = index[query_lower]
+        conf = entry.get("confidence_score", 0.0)
+        if conf >= min_confidence:
+            results.append((100, conf, entry))
+
+    # Linear scan for partial matches and exact fallback (for safe dict without index)
     for entry in dictionary:
         score = 0
+        word_hindi = entry.get("word_hindi", "").lower()
+        word_roman = entry.get("word_hinglish_roman", "").lower()
+        conf = entry.get("confidence_score", 0.0)
 
-        # Exact headword match (highest priority)
-        if entry.get("word_hindi", "").lower() == query_lower:
-            score = 100
-        elif entry.get("word_hinglish_roman", "").lower() == query_lower:
-            score = 95
-        # Partial match in headword
-        elif query_lower in entry.get("word_hindi", "").lower():
+        if conf < min_confidence:
+            continue
+
+        # Exact headword match (already handled by index, but needed for safe dict)
+        if word_hindi == query_lower or word_roman == query_lower:
+            if not use_index:
+                score = 100 if word_hindi == query_lower else 95
+        elif query_lower in word_hindi:
             score = 80
-        elif query_lower in entry.get("word_hinglish_roman", "").lower():
+        elif query_lower in word_roman:
             score = 75
-        # Match in definition
         elif query_lower in entry.get("definition", "").lower():
             score = 50
 
         if score > 0:
-            results.append((score, entry))
+            results.append((score, conf, entry))
 
-    results.sort(key=lambda x: x[0], reverse=True)
-    return [entry for _, entry in results[:limit]]
+    # Sort by score (desc), then by confidence (desc) within same tier
+    results.sort(key=lambda x: (-x[0], -x[1]))
+    return [entry for _, _, entry in results[:limit]]
 
 
 def create_app(data_dir: Path = Path("data/output")) -> Any:
@@ -125,10 +167,29 @@ def create_app(data_dir: Path = Path("data/output")) -> Any:
     async def lookup(
         word: str = Query(..., description="Word to look up (Hindi or Roman)"),
         safe: bool = Query(False, description="If true, use pre-filtered safe dataset"),
+        min_confidence: float = Query(0.0, ge=0.0, le=1.0, description="Minimum confidence score"),
         limit: int = Query(10, ge=1, le=100),
     ):
+        query_lower = word.lower().strip()
+        # O(1) short-circuit on exact index match (full dictionary only).
+        if not safe and query_lower in _index:
+            entry = _index[query_lower]
+            if entry.get("confidence_score", 0) >= min_confidence:
+                return {
+                    "query": word,
+                    "results": [entry],
+                    "count": 1,
+                }
+
         data = _safe_dictionary if safe else _dictionary
-        results = _fuzzy_search(word, limit=limit, dictionary=data)
+        use_index = not safe
+        results = _fuzzy_search(
+            word,
+            limit=limit,
+            dictionary=data,
+            use_index=use_index,
+            min_confidence=min_confidence,
+        )
 
         return {
             "query": word,
@@ -140,10 +201,16 @@ def create_app(data_dir: Path = Path("data/output")) -> Any:
     async def search(
         q: str = Query(..., description="Search query"),
         safe: bool = Query(False, description="If true, use pre-filtered safe dataset"),
+        min_confidence: float = Query(0.0, ge=0.0, le=1.0, description="Minimum confidence score"),
         limit: int = Query(20, ge=1, le=100),
     ):
         data = _safe_dictionary if safe else _dictionary
-        results = _fuzzy_search(q, limit=limit, dictionary=data)
+        results = _fuzzy_search(
+            q,
+            limit=limit,
+            dictionary=data,
+            min_confidence=min_confidence,
+        )
 
         return {
             "query": q,

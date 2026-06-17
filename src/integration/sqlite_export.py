@@ -10,6 +10,19 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+def sanitize_fts5_query(query: str) -> str:
+    """Wrap each token in double quotes for FTS5 literal matching.
+
+    Prevents FTS5 from interpreting user input as operators (OR, AND, NOT, NEAR).
+    Each whitespace-delimited token becomes a quoted phrase. Empty queries return
+    an empty quoted string, which matches nothing.
+    """
+    tokens = [t for t in query.split() if t]
+    if not tokens:
+        return '""'
+    return " ".join(f'"{t}"' for t in tokens)
+
+
 def export_sqlite_fts(
     entries: list[dict[str, Any]],
     output_path: Path,
@@ -105,7 +118,7 @@ def search_sqlite(
 
     Args:
         db_path: Path to the SQLite database.
-        query: Search query (supports FTS5 query syntax).
+        query: Search query (tokens are quoted literally — FTS5 operators are escaped).
         limit: Maximum results.
         safe: If True, filter out toxic entries.
 
@@ -116,6 +129,8 @@ def search_sqlite(
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
+    sanitized = sanitize_fts5_query(query)
+
     # FTS5 search with ranking
     sql = """
         SELECT d.*, rank
@@ -125,7 +140,7 @@ def search_sqlite(
         ORDER BY rank
         LIMIT ?
     """
-    params = [query, limit]
+    params = [sanitized, limit]
 
     if safe:
         sql = """
