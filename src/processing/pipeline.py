@@ -39,6 +39,24 @@ def _has_devanagari(text: str) -> bool:
     return any("\u0900" <= c <= "\u097f" for c in text)
 
 
+def _definition_lang(definition: str) -> str:
+    """Classify definition language: 'hi' (Hindi-only), 'en' (English-only), 'mixed'.
+
+    A definition is Hindi-only if it contains Devanagari characters
+    and no ASCII letters. English-only if it has ASCII letters and no
+    Devanagari. Mixed if it has both.
+    """
+    if not definition:
+        return "en"
+    has_dev = any("\u0900" <= c <= "\u097f" for c in definition)
+    has_latin = any(c.isascii() and c.isalpha() for c in definition)
+    if has_dev and has_latin:
+        return "mixed"
+    if has_dev:
+        return "hi"
+    return "en"
+
+
 def _ensure_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Convert all romanized forms to informal Hinglish.
 
@@ -93,13 +111,105 @@ def _transliterate_definitions(entries: list[dict[str, Any]]) -> list[dict[str, 
     return entries
 
 
-def _deduplicate_by_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Deduplicate entries by word_hinglish_roman, keeping the best entry.
+def _merge_entries(primary: dict[str, Any], secondary: dict[str, Any]) -> dict[str, Any]:
+    """Merge secondary entry's data into primary when both share the same roman form.
 
-    Best entry is determined by:
-    1. Longest definition (more detailed = better)
-    2. WordNet source preferred over Wiktionary
-    3. Has example sentence (bonus)
+    Merges definitions, synsets, examples, and source tracking.
+    Primary keeps its core fields (word_hindi, part_of_speech, etc.);
+    secondary's unique data is folded in.
+    """
+    # Merge source tracking
+    primary_sources = primary.get("sources", [primary.get("source", "unknown")])
+    secondary_sources = secondary.get("sources", [secondary.get("source", "unknown")])
+    combined_sources = list(dict.fromkeys(primary_sources + secondary_sources))
+    primary["sources"] = combined_sources
+    primary["source"] = combined_sources[0]
+
+    # Merge definitions: classify both, fill in hi/en fields
+    p_def = primary.get("definition", "")
+    s_def = secondary.get("definition", "")
+    p_lang = _definition_lang(p_def)
+    s_lang = _definition_lang(s_def)
+
+    if p_lang in ("hi", "mixed") or s_lang in ("hi", "mixed"):
+        if p_lang in ("hi", "mixed"):
+            primary["definition_hi"] = p_def
+        elif "definition_hi" not in primary:
+            primary["definition_hi"] = s_def
+
+    if p_lang in ("en", "mixed") or s_lang in ("en", "mixed"):
+        if p_lang in ("en", "mixed"):
+            primary["definition_en"] = p_def
+        elif "definition_en" not in primary:
+            primary["definition_en"] = s_def
+
+    # Merge synsets
+    primary_synsets = primary.get("synsets", [])
+    for s in secondary.get("synsets", []):
+        if s not in primary_synsets:
+            primary_synsets.append(s)
+    primary["synsets"] = primary_synsets
+
+    # Merge examples
+    primary_examples = primary.get("all_examples", [])
+    for ex in secondary.get("all_examples", []):
+        if ex and ex not in primary_examples:
+            primary_examples.append(ex)
+    primary["all_examples"] = primary_examples
+    if not primary.get("example_sentence") and secondary.get("example_sentence"):
+        primary["example_sentence"] = secondary["example_sentence"]
+
+    # Merge POS if missing
+    if not primary.get("part_of_speech") and secondary.get("part_of_speech"):
+        primary["part_of_speech"] = secondary["part_of_speech"]
+
+    return primary
+
+
+def _entry_quality_score(entry: dict[str, Any]) -> int:
+    """Score an entry's quality for deduplication ranking.
+
+    Higher score = better entry to keep as primary. Factors:
+    - English definitions are more useful (heavy bonus)
+    - WordNet source preferred
+    - Has example sentence
+    - Longer definition
+    - Penalty for missing definition
+    """
+    score = 0
+    definition = entry.get("definition", "")
+
+    # Bonus for English definitions (more useful for keyboard users)
+    lang = _definition_lang(definition)
+    if lang == "en":
+        score += 200
+    elif lang == "mixed":
+        score += 100
+
+    # Longer definition = more detailed
+    score += len(definition)
+
+    # WordNet preferred
+    if entry.get("source") == "WordNet":
+        score += 100
+
+    # Has example sentence
+    if entry.get("example_sentence"):
+        score += 50
+
+    # Heavy penalty for missing definition
+    if not definition:
+        score -= 500
+
+    return score
+
+
+def _deduplicate_by_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Deduplicate entries by word_hinglish_roman, merging data from dupes.
+
+    When two entries share the same roman form, the higher-quality entry
+    is kept as primary; the other's definitions, synsets, and examples
+    are merged into it (so no data is lost).
     """
     seen: dict[str, dict[str, Any]] = {}
 
@@ -113,12 +223,14 @@ def _deduplicate_by_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]
             continue
 
         existing = seen[roman]
-        # Compare quality
         existing_score = _entry_quality_score(existing)
         new_score = _entry_quality_score(entry)
 
         if new_score > existing_score:
+            _merge_entries(entry, existing)
             seen[roman] = entry
+        else:
+            _merge_entries(existing, entry)
 
     result = list(seen.values())
     logger.info(
@@ -129,22 +241,22 @@ def _deduplicate_by_roman(entries: list[dict[str, Any]]) -> list[dict[str, Any]]
     return result
 
 
-def _entry_quality_score(entry: dict[str, Any]) -> int:
-    """Score an entry's quality for deduplication ranking."""
-    score = 0
-    # Longer definition = more detailed
-    definition = entry.get("definition", "")
-    score += len(definition)
-    # WordNet preferred
-    if entry.get("source") == "WordNet":
-        score += 100
-    # Has example sentence
-    if entry.get("example_sentence"):
-        score += 50
-    # Has example_hinglish
-    if entry.get("example_hinglish"):
-        score += 50
-    return score
+def _classify_definitions(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Classify each entry's definition language and fill hi/en fields."""
+    for entry in entries:
+        defn = entry.get("definition", "")
+        lang = _definition_lang(defn)
+        entry["definition_lang"] = lang
+        if lang == "hi" and "definition_hi" not in entry:
+            entry["definition_hi"] = defn
+        elif lang == "en" and "definition_en" not in entry:
+            entry["definition_en"] = defn
+        elif lang == "mixed":
+            if "definition_hi" not in entry:
+                entry["definition_hi"] = defn
+            if "definition_en" not in entry:
+                entry["definition_en"] = defn
+    return entries
 
 
 def run_pipeline(
@@ -212,6 +324,9 @@ def run_pipeline(
     # Deduplicate by word_hinglish_roman (keep best definition per word)
     merged = _deduplicate_by_roman(merged)
 
+    # Classify definitions and fill hi/en fields
+    merged = _classify_definitions(merged)
+
     # === Stage 5: Safety Filter ===
     if not skip_safety:
         logger.info("=== Running Safety Filter ===")
@@ -232,11 +347,24 @@ def run_pipeline(
     # Compute stats
     sources = {}
     pos_counts = {}
+    multi_source = 0
+    hi_only = 0
+    en_only = 0
+    mixed = 0
     for entry in merged:
         src = entry.get("source", "unknown")
         sources[src] = sources.get(src, 0) + 1
         pos = entry.get("part_of_speech", "unknown")
         pos_counts[pos] = pos_counts.get(pos, 0) + 1
+        if len(entry.get("sources", [src])) > 1:
+            multi_source += 1
+        lang = entry.get("definition_lang", "en")
+        if lang == "hi":
+            hi_only += 1
+        elif lang == "en":
+            en_only += 1
+        else:
+            mixed += 1
 
     # Build safe dataset (filter toxic entries)
     safe_entries = [e for e in merged if e.get("severity_score", 0) < 0.5]
@@ -249,6 +377,12 @@ def run_pipeline(
             "version": "1.0.0",
             "total_entries": len(merged),
             "safe_entries": len(safe_entries),
+            "multi_source_entries": multi_source,
+            "definition_languages": {
+                "hi_only": hi_only,
+                "en_only": en_only,
+                "mixed": mixed,
+            },
             "sources": list(sources.keys()),
             "source_counts": sources,
             "pos_distribution": pos_counts,
@@ -322,19 +456,28 @@ def run_pipeline(
     logger.info("Wrote %d excluded entries to %s", len(excluded_words), exclude_file)
 
     # Print summary
+    multi_src = sum(1 for e in merged if len(e.get("sources", [e.get("source", "")])) > 1)
+    hi_count = sum(1 for e in merged if e.get("definition_lang") == "hi")
+    en_count = sum(1 for e in merged if e.get("definition_lang") == "en")
+    mixed_count = sum(1 for e in merged if e.get("definition_lang") == "mixed")
     print(f"\n{'=' * 60}")
     print("  HinglishKosh (हिंग्लिशकोश) — Pipeline Complete")
     print(f"{'=' * 60}")
-    print(f"  Total entries:  {len(merged):,}")
-    print(f"  Safe entries:   {len(safe_entries):,} (severity < 0.5)")
-    print(f"  Excluded:       {len(excluded_words):,} (severity >= 0.5)")
-    print(f"  WordNet:        {sources.get('WordNet', 0):,}")
-    print(f"  Wiktionary:     {sources.get('Wiktionary', 0):,}")
+    print(f"  Total entries:      {len(merged):>8,}")
+    print(f"  Safe entries:       {len(safe_entries):>8,} (severity < 0.5)")
+    print(f"  Excluded:           {len(excluded_words):>8,} (severity >= 0.5)")
+    print(f"  Multi-source:       {multi_src:>8,}")
+    print(f"  Definitions:")
+    print(f"    Hindi-only:       {hi_count:>8,}")
+    print(f"    English-only:     {en_count:>8,}")
+    print(f"    Mixed:            {mixed_count:>8,}")
+    print(f"  WordNet:            {sources.get('WordNet', 0):>8,}")
+    print(f"  Wiktionary:         {sources.get('Wiktionary', 0):>8,}")
     supp_count = sum(v for k, v in sources.items() if k.startswith("supplemental"))
-    print(f"  Supplemental:   {supp_count:,}")
-    print(f"  Output:         {output_file}")
-    print(f"  Safe output:    {safe_file}")
-    print(f"  Excluded:       {exclude_file}")
+    print(f"  Supplemental:       {supp_count:>8,}")
+    print(f"  Output:             {output_file}")
+    print(f"  Safe output:        {safe_file}")
+    print(f"  Excluded:           {exclude_file}")
     print(f"{'=' * 60}\n")
 
     return dataset["meta"]
