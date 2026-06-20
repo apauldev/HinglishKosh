@@ -285,6 +285,8 @@ class TestAospExport:
         # Verify frequency values are in Android's valid range
         for line in output.read_text().strip().split("\n"):
             parts = line.split("\t")
+            assert len(parts) == 6
+            assert parts[2] == "en"
             freq = int(parts[1])
             assert 1 <= freq <= 255, f"Frequency {freq} out of range: {line}"
 
@@ -329,6 +331,36 @@ class TestAospExport:
         output = tmp_path / "nodup.dict"
         count = export_aosp_dict(entries, output, dedup=False)
         assert count == 2
+
+    def test_export_dict_normalizes_roman_words(self, tmp_path):
+        entries = [
+            {
+                "word_hindi": "पानी",
+                "word_hinglish_roman": "  PaAni  ",
+                "confidence_score": 0.73,
+                "severity_score": 0.0,
+                "part_of_speech": "noun",
+            }
+        ]
+        output = tmp_path / "normalized.dict"
+        count = export_aosp_dict(entries, output, dedup=False)
+        assert count == 1
+        assert output.read_text(encoding="utf-8").strip().startswith("paani\t")
+
+    def test_export_dict_skips_devanagari_roman_field(self, tmp_path):
+        entries = [
+            {
+                "word_hindi": "पानी",
+                "word_hinglish_roman": "पानी",
+                "confidence_score": 0.73,
+                "severity_score": 0.0,
+                "part_of_speech": "noun",
+            }
+        ]
+        output = tmp_path / "skip.dict"
+        count = export_aosp_dict(entries, output, dedup=False)
+        assert count == 0
+        assert output.read_text(encoding="utf-8") == ""
 
     def test_export_words_txt(self, tmp_path):
         output = tmp_path / "words.txt"

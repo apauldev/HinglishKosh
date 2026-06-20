@@ -1,7 +1,7 @@
-"""AOSP .dict file export for OpenBoard/HeliBoard/FUTO keyboard integration.
+"""AOSP .dict file export for English-keyboard roman input.
 
 Generates dictionary files compatible with Android's UserDictionary format,
-which is supported by OpenBoard, HeliBoard, and FUTO Keyboard.
+which can be used by OpenBoard, HeliBoard, and FUTO Keyboard for roman input.
 
 The AOSP UserDictionary frequency range is 1-255. This module maps the
 dictionary's confidence scores (0.30-1.00) into that range so keyboards
@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import logging
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,19 @@ _MAX_FREQ = 255
 # Confidence range from the pipeline scoring system
 _MIN_CONF = 0.30
 _MAX_CONF = 1.00
+
+
+def _contains_devanagari(text: str) -> bool:
+    return any("\u0900" <= c <= "\u097f" for c in text)
+
+
+def _normalize_keyboard_word(word: str) -> str:
+    """Normalize a word for keyboard dictionary export.
+
+    Lowercases and trims whitespace so the exported artifact matches the way
+    people actually type roman Hinglish on an English keyboard.
+    """
+    return unicodedata.normalize("NFKC", word).strip().lower()
 
 
 def confidence_to_frequency(confidence: float) -> int:
@@ -44,10 +58,10 @@ def confidence_to_frequency(confidence: float) -> int:
 def export_aosp_dict(
     entries: list[dict[str, Any]],
     output_path: Path,
-    locale: str = "hi",
+    locale: str = "en",
     dedup: bool = True,
 ) -> int:
-    """Export dictionary entries to AOSP .dict format.
+    """Export dictionary entries to AOSP .dict format for roman input.
 
     Format: Tab-separated values with columns:
         word<TAB>frequency<TAB>locale<TAB>shortcut<TAB>bigram<TAB>pos
@@ -55,7 +69,8 @@ def export_aosp_dict(
     Args:
         entries: Dictionary entries to export.
         output_path: Path to write the .dict file.
-        locale: Language locale code.
+        locale: Language locale code. Defaults to "en" so the exported
+            dictionary is usable from an English keyboard.
         dedup: If True, collapse duplicate roman words keeping highest frequency.
 
     Returns:
@@ -65,8 +80,10 @@ def export_aosp_dict(
     seen: dict[str, int] = {} if dedup else None
 
     for entry in entries:
-        word = entry.get("word_hinglish_roman", "")
+        word = _normalize_keyboard_word(entry.get("word_hinglish_roman", ""))
         if not word:
+            continue
+        if _contains_devanagari(word):
             continue
 
         if entry.get("severity_score", 0) >= 0.5:
@@ -106,8 +123,10 @@ def export_words_txt(
     """
     words = set()
     for entry in entries:
-        roman = entry.get("word_hinglish_roman", "")
+        roman = _normalize_keyboard_word(entry.get("word_hinglish_roman", ""))
         if roman and entry.get("severity_score", 0) < 0.5:
+            if _contains_devanagari(roman):
+                continue
             words.add(roman.lower())
 
     with open(output_path, "w", encoding="utf-8") as f:

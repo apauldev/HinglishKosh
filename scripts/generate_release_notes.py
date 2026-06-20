@@ -73,8 +73,8 @@ def main():
 | `hinglish_dictionary_v1.min.json` | Full dataset (compact) |
 | `hinglish_dictionary_v1_safe.json` | Safe dataset (toxic filtered) |
 | `hinglish_dictionary_v1_safe.min.json` | Safe dataset (compact) |
-| `hinglish.dict` | Keyboard dictionary (OpenBoard/HeliBoard/FUTO) |
-| `hinglish_words.txt` | Word list (one per line) |
+| `hinglish.dict` | Keyboard dictionary for English-keyboard roman input |
+| `hinglish_words.txt` | Plain word list fallback (one word per line) |
 | `SHA256SUMS.txt` | File checksums |
 
 ### Usage

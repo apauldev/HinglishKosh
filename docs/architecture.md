@@ -355,11 +355,11 @@ Tab-separated format compatible with OpenBoard, HeliBoard, and FUTO Keyboard:
 word<TAB>frequency<TAB>locale<TAB>shortcut<TAB>bigram<TAB>pos
 ```
 
-- Frequency = `confidence_score × 1000` (int)
-- Locale = `"hi"`
+- Frequency = linear map from `confidence_score` into `1..255`
+- Locale = `"en"` for roman input on an English keyboard
 - Toxic entries (severity >= 0.5) are excluded
 
-Also exports `words.txt` — a flat sorted wordlist of unique Roman headwords.
+Also exports `words.txt` — a flat sorted wordlist of unique Roman headwords for keyboards that prefer a plain import list.
 
 #### SQLite FTS5 (`src/integration/sqlite_export.py`)
 
