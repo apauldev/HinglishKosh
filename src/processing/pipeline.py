@@ -333,6 +333,7 @@ def run_pipeline(
     output_dir: Path = Path("data/output"),
     include_supplemental: bool = True,
     skip_safety: bool = False,
+    keyboard_locale: str = "en",
 ) -> dict[str, Any]:
     """Run the full dictionary processing pipeline.
 
@@ -540,9 +541,9 @@ def run_pipeline(
     db_count = export_sqlite_fts(merged, db_file)
     logger.info("Exported %d entries to SQLite FTS5: %s", db_count, db_file)
 
-    # Export AOSP .dict for OpenBoard/HeliBoard/FUTO Keyboard
+    # Export the roman-input AOSP .dict for English-keyboard typing.
     dict_file = output_dir / "hinglish.dict"
-    dict_count = export_aosp_dict(safe_entries, dict_file)
+    dict_count = export_aosp_dict(safe_entries, dict_file, locale=keyboard_locale)
     logger.info("Exported %d entries to AOSP .dict: %s", dict_count, dict_file)
 
     # Export simple word list (one word per line)
@@ -591,6 +592,11 @@ def main():
     parser.add_argument("--output-dir", type=Path, default=Path("data/output"))
     parser.add_argument("--no-supplemental", action="store_true")
     parser.add_argument("--skip-safety", action="store_true", help="Skip safety filter")
+    parser.add_argument(
+        "--keyboard-locale",
+        default="en",
+        help='Locale written into the keyboard dictionary export (default: "en")',
+    )
     args = parser.parse_args()
 
     run_pipeline(
@@ -598,6 +604,7 @@ def main():
         output_dir=args.output_dir,
         include_supplemental=not args.no_supplemental,
         skip_safety=args.skip_safety,
+        keyboard_locale=args.keyboard_locale,
     )
 
 

@@ -49,13 +49,13 @@ gh release create "$VERSION" \
 ### Files
 - \`hinglish_dictionary_v1.json\` — Full dataset (pretty-printed)
 - \`hinglish_dictionary_v1.min.json\` — Compact dataset (production)
-- \`hinglish.dict\` — Keyboard dictionary for OpenBoard/HeliBoard/FUTO
-- \`hinglish_words.txt\` — Word list (one per line)
+- \`hinglish.dict\` — Keyboard dictionary for English-keyboard roman input
+- \`hinglish_words.txt\` — Plain word list fallback (one word per line)
 - \`SHA256SUMS.txt\` — File checksums
 
 ### Integration
 - API: \`pip install hinglish-dictionary\`
-- Keyboard: Import \`hinglish.dict\` into OpenBoard, HeliBoard, or FUTO Keyboard
+- Keyboard: Import \`hinglish.dict\` into OpenBoard, HeliBoard, or FUTO Keyboard on the English keyboard layout
 - CLI: \`hinglish-dict lookup <word>\`" \
     "${ASSETS[@]}" \
     "$OUTPUT_DIR/SHA256SUMS.txt"

@@ -24,7 +24,7 @@ HinglishKosh fills that gap: **114,867 deduplicated entries** (expanded from 209
 - **Informal Hinglish romanization** — `chai` not `cāy`, `aag` not `āg`, `hawa` not `havā`
 - **Hash-indexed REST API** — O(1) exact lookups, substring search with confidence tiebreaking
 - **SQLite FTS5** — 65ms startup CLI, full-text search, offline-capable
-- **AOSP keyboard export** — ready for OpenBoard, HeliBoard, FUTO Keyboard
+- **AOSP keyboard export** — roman-input dictionary for English keyboard typing
 - **Safety filter** — profanity detection and toxicity scoring
 - **1087 tests passing** — including 588 common word romanization tests
 
@@ -249,23 +249,24 @@ The transliteration accuracy number (75.8%) is the headline metric — the remai
 
 ## Android Keyboard Integration
 
-HinglishKosh exports AOSP `.dict` files that work with open-source Android keyboards. The dictionary provides romanized Hinglish word suggestions (e.g., typing "paa" suggests "paani") when your keyboard is in Hindi script mode.
+HinglishKosh exports AOSP `.dict` files for roman Hinglish input on an English keyboard. Type Latin letters and get Hinglish suggestions in the same style as Google-style transliteration keyboards (for example, typing `paa` suggests `paani`).
 
 ### Download
 
 Get `hinglish.dict` from the latest [GitHub Release](https://github.com/apauldev/HinglishKosh/releases).
+If your keyboard prefers a plain word list, use `hinglish_words.txt` instead.
 
 ### OpenBoard
 
 1. Open **OpenBoard Settings** → **Dictionary** → **Import custom dictionary**
 2. Select the downloaded `hinglish.dict` file
-3. Switch to a Hindi keyboard layout — Hinglish words appear as suggestions
+3. Use the English keyboard layout — Hinglish words appear as suggestions
 
 ### HeliBoard
 
 1. Open **HeliBoard Settings** → **Dictionary** → **Import dictionary**
 2. Select `hinglish.dict`
-3. Enable the Hindi keyboard in HeliBoard settings if not already active
+3. Enable the English keyboard if not already active
 4. Words are ranked by frequency (based on confidence scores)
 
 ### FUTO Keyboard
@@ -287,7 +288,7 @@ After importing, words like these become available as you type:
 
 ### Dataset Versions
 
-The `.dict` file uses the **safe** dataset (toxic entries filtered out, severity_score < 0.5).
+The `.dict` file uses the **safe** dataset (toxic entries filtered out, severity_score < 0.5) and is written for English-keyboard roman input.
 
 ## Architecture
 

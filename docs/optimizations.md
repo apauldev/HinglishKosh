@@ -154,7 +154,7 @@ async def lookup(word: str, safe: bool = True, limit: int = 10):
 
 ```python
 # In pipeline.py, after merge + romanization:
-aosp_dict_export(merged, output_dir / "hinglish.dict")
+aosp_dict_export(merged, output_dir / "hinglish.dict", locale="en")
 sqlite_export(merged, output_dir / "hinglish.db")
 # Then write JSON
 ```
