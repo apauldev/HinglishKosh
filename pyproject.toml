@@ -8,7 +8,7 @@ include = ["src*"]
 
 [project]
 name = "hinglish-dictionary"
-version = "1.3.0"
+version = "1.4.0"
 description = "A comprehensive Hinglish-English dictionary dataset for keyboards and apps"
 readme = "README.md"
 license = "GPL-3.0-only"
