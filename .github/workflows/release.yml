@@ -40,6 +40,7 @@ jobs:
         run: |
           sha256sum hinglish_dictionary_v1.json hinglish_dictionary_v1.min.json \
             hinglish_dictionary_v1_safe.json hinglish_dictionary_v1_safe.min.json \
+            hinglish.dict hinglish_words.txt \
             > SHA256SUMS.txt
 
       - name: Generate release notes
@@ -54,4 +55,6 @@ jobs:
             data/output/hinglish_dictionary_v1.min.json
             data/output/hinglish_dictionary_v1_safe.json
             data/output/hinglish_dictionary_v1_safe.min.json
+            data/output/hinglish.dict
+            data/output/hinglish_words.txt
             data/output/SHA256SUMS.txt

@@ -249,35 +249,45 @@ The transliteration accuracy number (75.8%) is the headline metric — the remai
 
 ## Android Keyboard Integration
 
-### Third-Party Keyboards
+HinglishKosh exports AOSP `.dict` files that work with open-source Android keyboards. The dictionary provides romanized Hinglish word suggestions (e.g., typing "paa" suggests "paani") when your keyboard is in Hindi script mode.
 
-HinglishKosh exports AOSP `.dict` files compatible with open-source Android keyboards:
+### Download
 
-| Keyboard | Hinglish Support | Notes |
-|---|---|---|
-| [OpenBoard](https://github.com/openboard-team/openboard) | Via custom dictionary | Import `.dict` file in settings |
-| [HeliBoard](https://github.com/Helium314/HeliBoard) | Via custom dictionary | Fork of OpenBoard, actively maintained |
-| [FUTO Keyboard](https://github.com/futo-org/android-keyboard) | Native support | Privacy-focused, supports custom dictionaries |
+Get `hinglish.dict` from the latest [GitHub Release](https://github.com/apauldev/HinglishKosh/releases).
 
-**Setup (OpenBoard/HeliBoard):**
-1. Download `hinglish.dict` from [Releases](https://github.com/apauldev/HinglishKosh/releases)
-2. Open keyboard settings → Dictionary → Import
-3. Select the `.dict` file
-4. Hinglish words will appear in suggestions
+### OpenBoard
 
-### Planned: Hinglish+English Keyboard
+1. Open **OpenBoard Settings** → **Dictionary** → **Import custom dictionary**
+2. Select the downloaded `hinglish.dict` file
+3. Switch to a Hindi keyboard layout — Hinglish words appear as suggestions
 
-**Problem:** Currently, Indian users switch between 2-3 keyboards — English for coding/work, Hindi/Hinglish for chatting. This is friction.
+### HeliBoard
 
-**Solution:** A single keyboard that handles:
-- English typing (QWERTY)
-- Hindi transliteration (type "namaste" → suggestions include "नमस्ते")
-- Hinglish mode (type "chai" → suggests "चाय")
-- Auto-detection based on context
+1. Open **HeliBoard Settings** → **Dictionary** → **Import dictionary**
+2. Select `hinglish.dict`
+3. Enable the Hindi keyboard in HeliBoard settings if not already active
+4. Words are ranked by frequency (based on confidence scores)
 
-This would be the first keyboard built specifically for how Indians actually type — mixing English and Hindi naturally, without switching apps.
+### FUTO Keyboard
 
-**Status:** Planning phase. Contributions welcome for keyboard development.
+1. Open **FUTO Keyboard Settings** → **Dictionaries** → **Add custom dictionary**
+2. Select `hinglish.dict`
+3. The dictionary enriches FUTO's suggestion engine with 114K+ Hinglish words
+
+### What to expect
+
+After importing, words like these become available as you type:
+
+| Type this... | See suggestions |
+|-------------|----------------|
+| `nam` | namaste, namaskar, namkeen |
+| `paa` | paani, paanch, paagal |
+| `cha` | chai, chaand, chakkar |
+| `py` | pyaar, pyasa, pyaaz |
+
+### Dataset Versions
+
+The `.dict` file uses the **safe** dataset (toxic entries filtered out, severity_score < 0.5).
 
 ## Architecture
 

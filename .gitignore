@@ -56,3 +56,5 @@ frontend/tests/
 frontend/.d1_dumps/
 .wrangler/
 
+frontend-svelte/.commandcode/taste/taste.md
+.codegraph/

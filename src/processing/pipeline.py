@@ -17,6 +17,7 @@ from typing import Any
 from src.ingestion.supplemental_loader import load_supplemental
 from src.ingestion.wiktionary_loader import load_wiktionary
 from src.ingestion.wordnet_loader import load_english_hindi_linkage, load_wordnet
+from src.integration.aosp_dict_export import export_aosp_dict, export_words_txt
 from src.integration.sqlite_export import export_sqlite_fts
 from src.processing.merge import assign_ids, merge_dictionaries
 from src.processing.transliterate import (
@@ -539,6 +540,16 @@ def run_pipeline(
     db_count = export_sqlite_fts(merged, db_file)
     logger.info("Exported %d entries to SQLite FTS5: %s", db_count, db_file)
 
+    # Export AOSP .dict for OpenBoard/HeliBoard/FUTO Keyboard
+    dict_file = output_dir / "hinglish.dict"
+    dict_count = export_aosp_dict(safe_entries, dict_file)
+    logger.info("Exported %d entries to AOSP .dict: %s", dict_count, dict_file)
+
+    # Export simple word list (one word per line)
+    txt_file = output_dir / "hinglish_words.txt"
+    txt_count = export_words_txt(safe_entries, txt_file)
+    logger.info("Exported %d unique words to %s", txt_count, txt_file)
+
     # Print summary
     multi_src = sum(1 for e in merged if len(e.get("sources", [e.get("source", "")])) > 1)
     hi_count = sum(1 for e in merged if e.get("definition_lang") == "hi")
@@ -567,6 +578,8 @@ def run_pipeline(
     print(f"  Output:             {output_file}")
     print(f"  Safe output:        {safe_file}")
     print(f"  Excluded:           {exclude_file}")
+    print(f"  Keyboard .dict:     {dict_file}")
+    print(f"  Word list:          {txt_file}")
     print(f"{'=' * 60}\n")
 
     return dataset["meta"]

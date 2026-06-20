@@ -3,7 +3,11 @@
 import sqlite3
 
 from src.api.main import _fuzzy_search, create_app
-from src.integration.aosp_dict_export import export_aosp_dict, export_words_txt
+from src.integration.aosp_dict_export import (
+    confidence_to_frequency,
+    export_aosp_dict,
+    export_words_txt,
+)
 from src.integration.sqlite_export import export_sqlite_fts, sanitize_fts5_query, search_sqlite
 
 # === API Tests ===
@@ -227,6 +231,47 @@ class TestAppCreation:
         assert app.title == "HinglishKosh API"
 
 
+# === Frequency Normalization Tests ===
+
+
+class TestConfidenceToFrequency:
+    def test_min_confidence_maps_to_min_freq(self):
+        assert confidence_to_frequency(0.30) == 1
+
+    def test_max_confidence_maps_to_max_freq(self):
+        assert confidence_to_frequency(1.00) == 255
+
+    def test_mid_confidence_maps_to_mid_freq(self):
+        # 0.65 is midpoint of 0.30-1.00
+        freq = confidence_to_frequency(0.65)
+        assert 1 <= freq <= 255
+        assert freq > 1
+
+    def test_below_min_is_floored(self):
+        assert confidence_to_frequency(0.0) == 1
+        assert confidence_to_frequency(0.10) == 1
+        assert confidence_to_frequency(0.29) == 1
+
+    def test_above_max_is_capped(self):
+        assert confidence_to_frequency(1.5) == 255
+        assert confidence_to_frequency(2.0) == 255
+
+    def test_known_values(self):
+        # Linear: 1 + (confidence - 0.30) / 0.70 * 254
+        assert confidence_to_frequency(0.30) == 1
+        # 0.66 → 1 + (0.36/0.70)*254 ≈ 1 + 130.6 = 131
+        assert confidence_to_frequency(0.66) == 131
+        # 0.73 → 1 + (0.43/0.70)*254 ≈ 1 + 156.0 = 157
+        assert confidence_to_frequency(0.73) == 157
+        # 0.92 → 1 + (0.62/0.70)*254 ≈ 1 + 224.9 = 225
+        assert confidence_to_frequency(0.92) == 225
+
+    def test_all_confidence_clusters_stay_in_range(self):
+        for conf in [0.30, 0.66, 0.67, 0.69, 0.71, 0.73, 0.75, 0.77, 0.88, 0.89, 0.92, 0.97, 1.00]:
+            freq = confidence_to_frequency(conf)
+            assert 1 <= freq <= 255, f"conf={conf} gave freq={freq}"
+
+
 # === AOSP Export Tests ===
 
 
@@ -236,6 +281,54 @@ class TestAospExport:
         count = export_aosp_dict(SAMPLE_ENTRIES, output)
         assert count == 2  # One entry has severity >= 0.5, should be skipped
         assert output.exists()
+
+        # Verify frequency values are in Android's valid range
+        for line in output.read_text().strip().split("\n"):
+            parts = line.split("\t")
+            freq = int(parts[1])
+            assert 1 <= freq <= 255, f"Frequency {freq} out of range: {line}"
+
+    def test_export_dict_dedup(self, tmp_path):
+        entries = [
+            {
+                "word_hindi": "पानी",
+                "word_hinglish_roman": "paani",
+                "confidence_score": 0.73,
+                "severity_score": 0.0,
+                "part_of_speech": "noun",
+            },
+            {
+                "word_hindi": "पानी",
+                "word_hinglish_roman": "paani",
+                "confidence_score": 0.92,
+                "severity_score": 0.0,
+                "part_of_speech": "noun",
+            },
+        ]
+        output = tmp_path / "dedup.dict"
+        count = export_aosp_dict(entries, output, dedup=True)
+        assert count == 1  # Same word, only highest confidence kept
+
+    def test_export_dict_no_dedup(self, tmp_path):
+        entries = [
+            {
+                "word_hindi": "पानी",
+                "word_hinglish_roman": "paani",
+                "confidence_score": 0.73,
+                "severity_score": 0.0,
+                "part_of_speech": "noun",
+            },
+            {
+                "word_hindi": "पानी",
+                "word_hinglish_roman": "paani",
+                "confidence_score": 0.92,
+                "severity_score": 0.0,
+                "part_of_speech": "noun",
+            },
+        ]
+        output = tmp_path / "nodup.dict"
+        count = export_aosp_dict(entries, output, dedup=False)
+        assert count == 2
 
     def test_export_words_txt(self, tmp_path):
         output = tmp_path / "words.txt"
