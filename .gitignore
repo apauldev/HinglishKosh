@@ -13,6 +13,9 @@ __pycache__/
 dist/
 build/
 .eggs/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 
 # Virtual env
 .venv/
@@ -57,4 +60,9 @@ frontend/.d1_dumps/
 .wrangler/
 
 frontend-svelte/.commandcode/taste/taste.md
+frontend-svelte/.wrangler/
+frontend-svelte/node_modules/
+frontend-svelte/*.db*
+frontend-svelte/*.sqlite*
+frontend-svelte/seed.sql
 .codegraph/
